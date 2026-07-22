@@ -1,0 +1,40 @@
+# scripts/
+
+Two audiences live here.
+
+## If you just want to install the ROM
+
+Only one script matters, and it needs nothing but `adb`, `fastboot` and the release zip:
+
+```sh
+./scripts/install.sh lineage-18.1-<date>-UNOFFICIAL-xdplus.zip
+```
+
+It routes the device into TWRP, verifies the transfer by md5, installs, clears the boot control block and reboots. Read [`docs/INSTALL.md`](../docs/INSTALL.md) first — in particular, it cannot put TWRP onto a stock device, and it will drop Magisk unless you pass `--boot`.
+
+| Flag | Effect |
+| --- | --- |
+| `--boot <img>` | `dd` this boot.img after the zip. Required to keep Magisk, since the zip writes `boot` itself. |
+| `--wipe` | Factory reset before installing. Needed when coming from a different ROM or Android version. |
+| `--keep-adb` | Stay in TWRP at the end instead of rebooting. |
+| `-y` | Skip the confirmation prompt. |
+
+## If you want to build the ROM
+
+These assume a full LineageOS 18.1 source tree. They read their paths from `env.sh`, which is **not** hardcoded to any machine — create `scripts/xdplus.env` (gitignored) and set at least:
+
+```sh
+XDROOT=/path/to/your/lineageos-18.1-tree
+```
+
+| Script | Does |
+| --- | --- |
+| `env.sh` | Shared paths. Sourced by the others, never run directly. Picks the newest bacon zip automatically. |
+| `build.sh` | Incremental `lunch` + `mka bacon`. Blocks until done; `BUILD-OK` / `BUILD-FAIL` in `$XDLOG`. |
+| `flash.sh` | Push the current zip to TWRP, install, clear BCB, reboot. Does not rebuild. |
+| `bootcheck.sh` | Post-flash verdict: `BOOT-COMPLETED` / `FASTBOOT-FALLBACK` / `STUCK`, plus a diagnosis bundle on failure. |
+| `kbuild.sh` | Build the 3.18 mt8176 kernel out-of-tree with GCC 4.9. **Always pass `KFRAG=scripts/xdplus_kernel.frag`** — without it the DDK version drops to 1.7 against 1.9 blobs and SurfaceFlinger loops on `PVRSRVConnectKM: Incompatible driver`. |
+| `xdplus_kernel.frag` | The kconfig delta layered on top of `mt8176_defconfig`. |
+| `inject_vendor.sh` | Turn a plain bacon zip (system + boot only) into a vendor-writing distributable, then re-sign it. See the header comment for why `/vendor` cannot be built from source on this device. |
+
+`inject_vendor.sh` needs a vendor image and the release signing keys. Neither is in this repo, and the keys never will be — point it at yours with `XDVENDOR_IMG` and keep `device/gpd/xdplus/keys/` gitignored.

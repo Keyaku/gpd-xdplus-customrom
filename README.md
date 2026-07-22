@@ -1,0 +1,202 @@
+# LineageOS 18.1 for the GPD XD+
+
+Unofficial **Android 11** for the GPD XD+ (`xdplus`), a MediaTek MT8176 handheld from 2018 that shipped with Android 7.0 and was left there.
+
+This repository is the umbrella: it holds the documentation, the build and install scripts, and the releases. It is **not** a build tree — the actual sources live in the [component repos](#the-repos).
+
+---
+
+- [What this is](#what-this-is)
+- [Why this exists](#why-this-exists)
+- [A note on how this was built](#a-note-on-how-this-was-built)
+- [The repos](#the-repos)
+- [Features](#features)
+- [What was removed from stock LineageOS](#what-was-removed-from-stock-lineageos)
+- [What this will never have](#what-this-will-never-have)
+- [Known issues and milestones](#known-issues-and-milestones)
+- [Installing](#installing)
+- [Building](#building)
+- [Contributing](#contributing)
+- [Special thanks](#special-thanks)
+
+---
+
+## What this is
+
+A daily-usable LineageOS 18.1 build for the GPD XD+, running on a **kernel built from public GPL source** and driving the PowerVR GX6250 with hardware acceleration — OpenGL ES and Vulkan both. Controller, D-Pad, Wi-Fi, Bluetooth, audio, microphone and sensors all work.
+
+The device is configured as a **SIM-less, camera-less handheld**, because that's what it physically is.
+
+The hard constraint that shapes everything here: **the bootloader is locked and should not be unlocked.** No `fastboot flash`, ever. Installs go through TWRP, kernel changes go through `dd`, and OTA auto-install cannot complete. Read [`docs/INSTALL.md`](docs/INSTALL.md) before you flash anything.
+Whether unlocking is doable, and whether re-locking is _as_ doable, has not been researched — for fear of bricking the device or leaving it in an unusable state.
+
+## Why this exists
+
+The XD+ was abandoned twice over.
+
+**GPD** shipped it on Android 7.0 in 2018 and stopped there. **The community** got it as far as an unofficial LineageOS 18.1 in 2021 — and then that stopped too, parked at a "Beta 19" build whose **sources were never published**, despite the kernel being GPL-licensed. There is no source tree to fork, no bug tracker, no way for anyone else to pick it up. The one modern OS the device had was a binary drop with a dead end behind it.
+
+Meanwhile the hardware is *fine*. A 5" 720p handheld with real shoulder buttons and analog sticks, an MT8176 and a GX6250. It still plays everything up to and around the sixth generation comfortably, which is the entire reason anyone owns one; game streaming is also great despite its lower-end Wi-Fi 2.4GHz specs.
+What it needed was not more horsepower, but rather an OS from this decade, with sources anyone can pick up and rebuild.
+
+So, this port starts from the old public GPL kernel tree and reconstructs the rest: device tree written from scratch, vendor blobs re-derived, every framework fix carried as a readable numbered patch instead of a fork. Everything needed to rebuild this ROM is public, **and stays public**.
+
+## A note on how this was built
+
+Honesty up front: this is a **side project, and it is substantially "vibecoded" with Claude**. Long reverse-engineering sessions, register dumps, HAL archaeology and patch-writing were done with heavy AI assistance, deliberately; it is the only reason a project of this size fit into spare time at all.
+
+What that means for you:
+
+- Everything published here is **tested on real hardware**. Nothing ships on the strength of "it compiled".
+- The reasoning behind each fix is written down, because it had to be.
+- But this is not a maintained, SLA-backed ROM. It is one person and a language model keeping an old handheld alive. Expect the pace of a hobby, not a distro.
+
+## The repos
+
+| Repo | Contains | Status |
+| --- | --- | --- |
+| [`android_device_gpd_xdplus`](https://github.com/Keyaku/android_device_gpd_xdplus) | Device tree — board config, product makefiles, HAL manifest, overlays, `rootdir/`, the `patches/` set | Publishing |
+| [`android_vendor_gpd_xdplus`](https://github.com/Keyaku/android_vendor_gpd_xdplus) | Proprietary blob set | Publishing |
+| [`android_kernel_mt8176_common`](https://github.com/Keyaku/android_kernel_mt8176_common) | 3.18 kernel source (GPL) | Public |
+| [`android_twrp_gpd_gpd_en`](https://github.com/Keyaku/android_twrp_gpd_gpd_en) | TWRP recovery tree (GPL) | Public |
+
+Only branches for versions actually supported are carried. Today that means **`lineage-18.1`** and nothing else; an empty `lineage-20` branch would just waste your afternoon.
+
+## Features
+
+### The platform
+
+- **LineageOS 18.1 / Android 11**, up from the stock Android 7.0, a four-version jump on 2018 vendor blobs.
+- **Kernel built from source** (3.18.79) rather than lifted from a shipped image, including an Android-11 binder ABI backport the 2019-era GPL tree predates.
+- **Release-signed** builds; upstream framework changes carried as **14 numbered patches** with per-patch rationale, not as forks of `frameworks/*`.
+
+### Graphics
+
+- **Hardware GPU** — PowerVR GX6250 on the DDK 1.9 driver stack.
+- **OpenGL ES** works throughout the UI and in apps.
+- **Vulkan works in games** (needs more testing), via a compatibility shim that works around the driver's crashes. RetroArch and its cores run on the Vulkan renderer.
+- **Rotation flat-pose handling** — the accelerometer sits in the clamshell base, so resting the device on a table reads as "flat" and stock Android freezes the last orientation. A configurable rotation is proposed instead.
+
+### Audio
+
+- **Microphone capture fixed.** Faults in the Android 8.1-era vendor audio HAL were worked around; the stock recorder and third-party apps record real audio.
+- **Headset jack plumbed.** Polling the driver's own sysfs state restores routing, speaker mute, headset mic and the status-bar icon.
+- Hardware video codecs, and low-latency audio suitable for **Moonlight** game streaming.
+
+### Input
+
+- **D-Pad fixed** — a key layout that the build system was quietly overwriting with a generic one.
+- Full controller support: sticks, shoulders, face buttons, D-Pad.
+
+### Connectivity
+
+- **2.4 GHz 802.11n & 5 GHz 802.11ac**.
+- **Power-save pinned off.** The MT6630 driver mishandles 802.11 power-save and access points kick the device under sustained load, so the radio is kept awake deliberately. It costs standby battery.
+- **Wi-Fi self-recovery.** The combo chip's Bluetooth firmware asserts on roughly one boot in five, taking `wlan0` down with it. AOSP parks Wi-Fi off until you toggle it by hand; this port retries until the chip is back.
+- **Bluetooth 4.1**.
+
+### Security and system
+
+- **TEE-backed keymaster and gatekeeper**, preferred over the software fallback and taught to accept the trustlet's non-standard password handle — which is what makes a **PIN** and hardware-backed keys work at all.
+- **Widevine DRM HAL** brought up on the 8.1-era blobs, working around a symbol rename between Android 8 and 11 that crash-looped the service.
+- Init hardened against pre-Android-9 vendor behaviour — without those guards init segfaults on boot, `logcat` is dead, and netd starts with no network at all.
+- An in-Settings **"GPD XD+"** menu exposing device-specific toggles at runtime.
+- Boot time cut to ~55 s, with more still on the table.
+
+## What was removed from stock LineageOS
+
+- **The Camera app** and the camera feature flags. The XD+ has no camera; advertising one only makes apps fail confusingly. **Camera blobs** were also stripped from the vendor partition entirely.
+- **Telephony is dormant.** The packages stay (Settings depends on them), but there is no radio HAL and the device declares itself non-voice-capable.
+- **No Google apps.** Standard LineageOS: nothing Google ships is included. Install GApps or microG yourself if you want them.
+
+## What this will never have
+
+Not "not yet" — these are hardware or licensing walls with nothing behind them.
+
+- **Cellular / SIM.** No modem in the device.
+- **Camera.** No sensor in the device.
+- **An unlocked bootloader.** GPD never provided an unlock path for this model. Everything downstream of that — `fastboot flash`, `fastboot boot`, one-command recovery from a bad kernel, working OTA auto-install — is permanently out of reach.
+- **Widevine L1.** L1 needs a certified, provisioned OEMCrypto path through the TEE, which this device was never issued. Protected HD streaming from services that require L1 will not happen here.
+- **Google Play certification.** Uncertified builds, by construction.
+- **WPA3 / SAE.** Blocked in the closed-source MT6630 driver and firmware, not in the framework.
+- **6 GHz Wi-Fi.** No 6E radio, despite what "hardware info" apps claim.
+- **A from-source `/vendor` image.** The device uses the legacy system-as-root layout where `/vendor` is a symlink into the system image, and building one natively creates a mount loop. Vendor stays a partition-based blob set, injected post-build.
+- **Anything requiring drivers that don't exist.** The GPU, Wi-Fi and video blobs are Android 8.1-era binaries with no source, and there will never be newer ones. That is the ceiling every future Android version has to be dragged over.
+
+## Known issues and milestones
+
+> **This section is not filled in yet** — it will be populated at the first public release, against the actual state of the tree at that moment rather than a snapshot that is already stale.
+>
+> It will cover, in brief: open bugs and their current state, with the multi-stage work (Vulkan, HDMI output) broken down into what has landed and what is left; and the milestone list — Widevine L3 verification, SELinux enforcing, `/data` encryption, an SP Flash Tool release package, and how far up the LineageOS versions this hardware can be pushed before the 8.1-era blobs make it impossible.
+
+## Installing
+
+Short version, on a device that already has TWRP:
+
+```sh
+./scripts/install.sh lineage-18.1-<date>-UNOFFICIAL-xdplus.zip
+```
+
+That routes the device into recovery, verifies the transfer, installs, clears the boot control block and reboots.
+
+Long version — and you should read it, because the locked bootloader makes this device unlike whatever you flashed last — is **[`docs/INSTALL.md`](docs/INSTALL.md)**. It covers TWRP installs, SP Flash Tool for first-time setup and unbricking, keeping Magisk across updates (the zip overwrites your kernel — this catches everyone), and troubleshooting.
+
+Releases are published under [Releases](https://github.com/Keyaku/gpd-xdplus-customrom/releases).
+
+## Building
+
+You need a LineageOS 18.1 source tree. Point `repo` at the device tree with a local manifest:
+
+```xml
+<!-- .repo/local_manifests/xdplus.xml -->
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+  <project name="Keyaku/android_device_gpd_xdplus"
+           path="device/gpd/xdplus"
+           remote="github"
+           revision="lineage-18.1" />
+</manifest>
+```
+
+```sh
+repo sync
+source build/envsetup.sh
+breakfast xdplus     # pulls kernel + vendor via lineage.dependencies
+# apply the numbered patches from device/gpd/xdplus/patches/ (see its README)
+brunch xdplus        # → flashable zip
+```
+
+The scripts in [`scripts/`](scripts/) wrap the device-specific parts: `build.sh`, `flash.sh`, `bootcheck.sh`, `kbuild.sh` for the kernel, and `inject_vendor.sh` for producing a vendor-writing zip. They read their paths from `scripts/env.sh` — set `XDROOT` in a local `scripts/xdplus.env` and nothing else is machine-specific. See [`scripts/README.md`](scripts/README.md).
+
+Two things that will waste your day if you skip them:
+
+- Build the kernel with `KFRAG=scripts/xdplus_kernel.frag`. Without it the DDK version drops to 1.7 against 1.9 blobs and SurfaceFlinger loops forever on `PVRSRVConnectKM: Incompatible driver`.
+- `mka bacon` writes the **boot** partition too. Every system flash silently replaces the running kernel.
+
+## Contributing
+
+Realistically, nobody is going to contribute to a forgotten handheld from 2018. That's fine; this exists so the option isn't closed.
+
+If you do want to: issues and pull requests are welcome on any of the [component repos](#the-repos). Bug reports are genuinely useful even without a fix attached, especially with a `logcat` and what you were doing. If you have an XD+ and something in the [feature list](#features) doesn't work for you, that is worth knowing.
+
+The one thing worth asking: keep fixes as **readable patches with a written rationale**, the way the existing `patches/` set does. This device only got this far because someone before could read what was changed and why — and never publishing that is exactly how it got stuck in the first place.
+
+## Special thanks
+
+To the people who published their work, which is the only reason any of this was possible:
+
+- **[wuxianlin](https://github.com/wuxianlin)** — the ALLDOCUBE X (`u1005`) [device](https://github.com/wuxianlin/android_device_cube_u1005) and [vendor](https://github.com/wuxianlin/android_vendor_cube_u1005) trees. Another MT8176 device with the same blob lineage, and the definitive reference for every vendor-facing kernel interface on this SoC. Repeatedly the difference between a fixed bug and a mystery.
+- **[druchaty](https://github.com/druchaty)** — the [`lineageos_kernel_cube_u1005`](https://github.com/druchaty/lineageos_kernel_cube_u1005) tree, the matching kernel side of the same reference.
+- **[Goayandi](https://github.com/Goayandi)** — an independently published [`mt8176_common`](https://github.com/Goayandi/android_kernel_mt8176_common) tree of the same `wisky8176` BSP, invaluable for diffing to isolate what a given tree had modified.
+- **The Chromium OS project** — the PowerVR 3.18 kernel work, a genuine reference for driving this GPU family on a kernel this old.
+- **LineageOS** — for eleven years of keeping devices alive past their vendors, and for a build system that a single person can actually port with.
+- **TeamWin** — TWRP, which on a locked-bootloader device is not a convenience but the only writable path onto the hardware.
+- **topjohnwu** — Magisk.
+
+### On the prior 18.1 work
+
+A note rather than a credit, because accuracy matters here.
+
+The XD+ had an earlier unofficial LineageOS 18.1, and the GPL trees published alongside the older 15.1-era work — the `mt8176_common` kernel and the TWRP tree — were real and useful, and this port builds on both. They are forked with history and attribution intact, as the GPL asks.
+
+The 18.1 build itself is a different matter. It was distributed as binaries and abandoned at Beta 19, and **its kernel sources were never published** — which the GPL does not permit for a binary you distribute. The practical result is that everyone running it was stuck: no source, no way to fix a bug, no way to continue the work. That is the gap this project exists to close, and it is why the kernel here is built from public source and why every framework change is carried as a readable patch. The published work is acknowledged. The unpublished part is not something to thank anyone for.

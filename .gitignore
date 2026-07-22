@@ -1,0 +1,24 @@
+# Never publish signing material
+keys/
+*.pk8
+*.x509.pem
+*.jks
+*.keystore
+
+# Local-only runtime state produced by scripts/
+scripts/.state/
+*.log
+
+# Release artifacts belong in GitHub Releases, not in git
+*.zip
+*.img
+*.bin
+
+# Local overrides of scripts/env.sh
+.env
+xdplus.env
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store

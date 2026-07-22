@@ -1,0 +1,92 @@
+#!/bin/bash
+# Turn a plain bacon zip (system+boot only) into a vendor-writing distributable.
+#
+# WHY THIS IS A SCRIPT AND NOT A BUILD FLAG: this device is legacy system-as-root,
+# where /vendor lives inside the system image. BOARD_PREBUILT_VENDORIMAGE requires
+# TARGET_COPY_OUT_VENDOR=vendor, which makes system/vendor a symlink -> /vendor
+# (i.e. /vendor -> /vendor, a mount loop -> fastboot bounce). PORTING_LOG §46.
+# So the build CANNOT emit vendor natively; we inject it post-bacon instead —
+# the proven §42 recipe, automated.
+#
+# Injects VIMG into the zip as vendor.img + adds a raw updater-script write to the
+# vendor partition (same mechanism as boot.img), then re-signs whole-file with
+# releasekey. Output verifies against /system/etc/security/otacerts.zip on device.
+#
+# Usage: inject_vendor.sh [--zip IN.zip] [--vendor-img VIMG] [--out OUT.zip]
+#   defaults: --zip $XDZIP (newest bacon), vendor = camerafree backup,
+#             out = <in basename>-CAMFREE.zip in $XDOUT
+set -euo pipefail
+source "$(dirname "$0")/env.sh"
+
+ZIP="$XDZIP"
+# camerafree + §60/§72 acqfd-patched hwcomposer (stock-abort → graceful close);
+# pristine camerafree image kept alongside as vendor-camerafree-mmcblk0p23.img.
+# -gpdfp variant additionally rewrites the vendor build.prop fingerprint/date/
+# security_patch from ALLDOCUBE/U1005E to GPD/xdplus (vendor thaw cheap step, §93);
+# pre-thaw image kept as vendor-camerafree-hwcpatched-mmcblk0p23.img.
+VIMG="${XDVENDOR_IMG:-$XDREPO/../vendor-camerafree-hwcpatched-gpdfp-mmcblk0p23.img}"
+OUT=""
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--zip)        ZIP="$2"; shift 2;;
+		--vendor-img) VIMG="$2"; shift 2;;
+		--out)        OUT="$2"; shift 2;;
+		*) echo "unknown arg: $1" >&2; exit 2;;
+	esac
+done
+
+[ -f "$ZIP" ]  || { echo "ERROR: input zip not found: $ZIP" >&2; exit 2; }
+[ -f "$VIMG" ] || { echo "ERROR: vendor.img not found: $VIMG" >&2; exit 2; }
+if [ -z "$OUT" ]; then
+	base=$(basename "$ZIP" .zip)
+	OUT="$XDOUT/${base}-CAMFREE.zip"
+fi
+
+SIGNAPK="$XDROOT/out/host/linux-x86/framework/signapk.jar"
+CONSCRYPT="$XDROOT/out/host/linux-x86/lib64"
+PK8="$XDDEV/keys/releasekey.pk8"
+PEM="$XDDEV/keys/releasekey.x509.pem"
+for f in "$SIGNAPK" "$PK8" "$PEM"; do
+	[ -f "$f" ] || { echo "ERROR: missing signing asset: $f" >&2; exit 2; }
+done
+
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+UNSIGNED="$WORK/unsigned.zip"
+cp "$ZIP" "$UNSIGNED"
+
+SCRIPT_PATH="META-INF/com/google/android/updater-script"
+US="$WORK/updater-script"
+unzip -p "$UNSIGNED" "$SCRIPT_PATH" > "$US"
+
+if grep -q 'by-name/vendor' "$US"; then
+	echo "note: updater-script already writes vendor; leaving script as-is"
+else
+	# Insert the vendor write right after the system restore step (backuptool.sh
+	# restore) so it lands before boot.img, matching the CAMFREE §42 ordering.
+	LINE='ui_print("Writing vendor image...");'
+	LINE="$LINE"$'\n''package_extract_file("vendor.img", "'"$XDBYNAME_TWRP"'/vendor");'
+	awk -v ins="$LINE" '
+		{ print }
+		/backuptool\.sh", "restore"/ && !done { print ins; done=1 }
+	' "$US" > "$US.new"
+	grep -q 'by-name/vendor' "$US.new" || { echo "ERROR: failed to insert vendor write (no restore anchor?)" >&2; exit 3; }
+	mv "$US.new" "$US"
+fi
+
+# Stage vendor.img + updated script into the unsigned zip.
+cp "$VIMG" "$WORK/vendor.img"
+( cd "$WORK" && zip -q "$UNSIGNED" vendor.img )
+mkdir -p "$WORK/META-INF/com/google/android"
+cp "$US" "$WORK/$SCRIPT_PATH"
+( cd "$WORK" && zip -q "$UNSIGNED" "$SCRIPT_PATH" )
+
+echo "signing (releasekey, whole-file)..."
+LD_LIBRARY_PATH="$CONSCRYPT" java -Djava.library.path="$CONSCRYPT" \
+	-jar "$SIGNAPK" -w "$PEM" "$PK8" "$UNSIGNED" "$OUT"
+
+echo "verifying vendor payload present..."
+unzip -l "$OUT" | grep -q 'vendor.img' || { echo "ERROR: vendor.img missing from output" >&2; exit 4; }
+unzip -p "$OUT" "$SCRIPT_PATH" | grep -q 'by-name/vendor' || { echo "ERROR: vendor write missing from script" >&2; exit 4; }
+
+echo "OK -> $OUT"
