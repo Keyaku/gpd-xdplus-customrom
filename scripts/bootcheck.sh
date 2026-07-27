@@ -8,6 +8,20 @@ while [ "$(date +%s)" -lt "$DEADLINE" ]; do
 	if timeout 5 adb shell getprop sys.boot_completed 2>/dev/null | grep -q 1; then
 		echo "VERDICT: BOOT-COMPLETED"
 		adb shell 'getprop ro.lineage.version; dumpsys SurfaceFlinger 2>/dev/null | grep -m1 -i GLES'
+		# Did the kernel we just built actually land? build.prop cannot answer that
+		# (see xdkernel_banner), and `mka bacon` writes boot.img as well as system,
+		# so a system flash silently replaces whatever kernel was running.
+		RUNNING=$(timeout 5 adb shell cat /proc/version 2>/dev/null | tr -d '\r')
+		BUILT=$(xdkernel_banner "$XDOUT/kernel")
+		if [ -z "$BUILT" ]; then
+			echo "KERNEL-UNKNOWN: no readable banner in $XDOUT/kernel"
+		elif [ "$RUNNING" = "$BUILT" ]; then
+			echo "KERNEL-MATCH: $RUNNING"
+		else
+			echo "KERNEL-MISMATCH"
+			echo "  running: $RUNNING"
+			echo "  built:   $BUILT"
+		fi
 		exit 0
 	fi
 	fastboot devices 2>/dev/null | grep -q fastboot && { echo "VERDICT: FASTBOOT-FALLBACK"; exit 2; }
