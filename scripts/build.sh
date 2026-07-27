@@ -52,6 +52,15 @@ if grep -q 'build completed successfully' "$XDLOG"; then
 	xdnotify "xdplus build OK"
 	exit 0
 fi
-echo "BUILD-FAIL rc=$RC $(date -Iseconds)" >> "$XDLOG"
+# Failure must be visible on stderr, not only in the log. Everything above is
+# redirected into $XDLOG, so a caller that pipes or captures this script (e.g.
+# `./build.sh | tail`) otherwise sees completely empty output on a failed build
+# — which reads exactly like a quiet success. Worse, a pipeline's exit status is
+# the *last* command's, so `./build.sh | tail` reports 0 no matter what this
+# script returns. Print the marker and the first real error so the failure is
+# impossible to miss even when the exit status has been swallowed.
+echo "BUILD-FAIL rc=$RC $(date -Iseconds)" | tee -a "$XDLOG" >&2
+echo "--- first error in $XDLOG ---" >&2
+grep -m1 -A12 '^FAILED:' "$XDLOG" >&2 || tail -20 "$XDLOG" >&2
 xdnotify "xdplus build FAILED"
 exit 1
