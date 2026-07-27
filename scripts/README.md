@@ -41,8 +41,7 @@ Those last two enable `xdnotify()`, defined in `env.sh` and called by `build.sh`
 | `build.sh` | Incremental `lunch` + `mka bacon`. Blocks until done; `BUILD-OK` / `BUILD-FAIL` in `$XDLOG`. |
 | `flash.sh` | Push the current zip to TWRP, install, clear BCB, reboot. Does not rebuild. |
 | `bootcheck.sh` | Post-flash verdict: `BOOT-COMPLETED` / `FASTBOOT-FALLBACK` / `STUCK`, plus a diagnosis bundle on failure. |
-| `kbuild.sh` | Build the 3.18 mt8176 kernel out-of-tree with GCC 4.9. **Always pass `KFRAG=scripts/xdplus_kernel.frag`** — without it the DDK version drops to 1.7 against 1.9 blobs and SurfaceFlinger loops on `PVRSRVConnectKM: Incompatible driver`. |
-| `xdplus_kernel.frag` | The kconfig delta layered on top of `mt8176_defconfig`. |
+| `kbuild.sh` | Build the 3.18 mt8176 kernel out-of-tree with GCC 4.9, for fast kernel-only iteration. `mka bacon` builds the same kernel in-tree, and that is the shipping path. Both layer `arch/arm64/configs/xdplus_kernel.frag` (which lives in the kernel tree) on `mt8176_defconfig`; without it the DDK version drops to 1.7 against 1.9 blobs and SurfaceFlinger loops on `PVRSRVConnectKM: Incompatible driver`. |
 | `inject_vendor.sh` | Turn a plain bacon zip (system + boot only) into a vendor-writing distributable, then re-sign it. See the header comment for why `/vendor` cannot be built from source on this device. |
 
 `inject_vendor.sh` needs a vendor image and the release signing keys. Neither is in this repo, and the keys never will be — point it at yours with `XDVENDOR_IMG` and keep `device/gpd/xdplus/keys/` gitignored.

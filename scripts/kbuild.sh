@@ -1,10 +1,21 @@
 #!/bin/bash
 # Build the 3.18 mt8176 kernel for xdplus, from the public GPL CleanROM-era tree.
-# Baseline: mt8176_defconfig. Deltas layered via a fragment when KFRAG is set.
+# Baseline: mt8176_defconfig + arch/arm64/configs/xdplus_kernel.frag.
 # Output: Image.gz-dtb under $KOUT/arch/arm64/boot/.
+#
+# This is the FAST-ITERATION path, not the shipping one: `mka bacon` builds the
+# same kernel in-tree (device/gpd/xdplus/BoardConfig.mk TARGET_KERNEL_SOURCE).
+# Both consume the same defconfig + fragment and produce an equivalent kernel;
+# use this when a full bacon per kernel edit is intolerable.
 set -u
 source "$(dirname "$0")/env.sh"
 KSRC=${KSRC:-$XDKSRC}
+# The fragment is MANDATORY — without it CONFIG_MTK_GPU_VERSION is unset, the
+# DDK drops to 1.7 against the 1.9 blobs, and SurfaceFlinger loops on
+# "PVRSRVConnectKM: Incompatible driver". It lives inside the kernel tree so the
+# in-tree build (kernel.mk resolves it under arch/$ARCH/configs/) and this
+# script share one copy. Set KFRAG=/dev/null to deliberately build without it.
+KFRAG=${KFRAG:-$KSRC/arch/arm64/configs/xdplus_kernel.frag}
 TC=${TC:-$XDROOT/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-}
 # Build on real disk, NOT a small tmpfs: a full out-tree plus gcc temps overflows
 # anything under ~20G -> "Disk quota exceeded". gcc writes .s files to TMPDIR.

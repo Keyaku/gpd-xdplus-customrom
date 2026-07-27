@@ -170,7 +170,7 @@ The scripts in [`scripts/`](scripts/) wrap the device-specific parts: `build.sh`
 
 Two things that will waste your day if you skip them:
 
-- Build the kernel with `KFRAG=scripts/xdplus_kernel.frag`. Without it the DDK version drops to 1.7 against 1.9 blobs and SurfaceFlinger loops forever on `PVRSRVConnectKM: Incompatible driver`.
+- The kernel is built in-tree by `mka bacon`, from `mt8176_defconfig` plus `arch/arm64/configs/xdplus_kernel.frag`. Without that fragment the DDK version drops to 1.7 against 1.9 blobs and SurfaceFlinger loops forever on `PVRSRVConnectKM: Incompatible driver` — and `kernel.mk` only warns about a missing fragment, so verify the deltas landed in `out/target/product/xdplus/obj/KERNEL_OBJ/.config` before flashing.
 - `mka bacon` writes the **boot** partition too. Every system flash silently replaces the running kernel.
 
 ## Contributing
