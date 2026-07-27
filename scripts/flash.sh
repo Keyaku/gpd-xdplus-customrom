@@ -3,6 +3,18 @@
 # clear BCB (para), reboot to system. Does NOT rebuild. Returns 0 on flash OK.
 source "$(dirname "$0")/env.sh"
 
+# The zip carries a boot.img, so a flash replaces the running kernel — and the
+# MT8176 LK is unforgiving about the device tree blob appended to it. Refuse to
+# flash a kernel whose DTB does not match the shipped one. XDDTB_FORCE=1 when you
+# are deliberately testing a changed DTB.
+if ! DTB=$(xddtb_check); then
+	echo "$DTB"
+	[ "${XDDTB_FORCE:-0}" = "1" ] || { echo "FLASH-ABORT: DTB differs from shipped (XDDTB_FORCE=1 to override)"; exit 4; }
+	echo "FLASH: DTB mismatch overridden by XDDTB_FORCE"
+else
+	echo "$DTB"
+fi
+
 # Route to recovery: system -> bootloader -> fastboot oem reboot-recovery.
 if ! adb devices | grep -q 'recovery$'; then
 	adb reboot bootloader 2>/dev/null

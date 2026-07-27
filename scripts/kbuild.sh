@@ -46,7 +46,11 @@ cd "$KSRC" || exit 2
 		echo "=== merging fragment $KFRAG ==="
 		./scripts/kconfig/merge_config.sh -O "$KOUT" "$KOUT/.config" "$KFRAG" || { echo "KBUILD-FAIL merge"; exit 1; }
 	fi
-	make O="$KOUT" -j"$JOBS" "$HOSTFLAGS" Image.gz-dtb headers_install 2>&1
+	# `headers_install` used to run here and nothing ever consumed $KOUT/usr —
+	# no TARGET_KERNEL_HEADERS in the device tree, no script or tool reading it.
+	# Dropped 2026-07-27; add it back explicitly if a userspace tool ever needs
+	# to compile against this kernel's uapi headers.
+	make O="$KOUT" -j"$JOBS" "$HOSTFLAGS" Image.gz-dtb 2>&1
 	rc=$?
 	if [ $rc -eq 0 ] && [ -f "$KOUT/arch/arm64/boot/Image.gz-dtb" ]; then
 		echo "=== KBUILD-OK $(date -Is) ==="

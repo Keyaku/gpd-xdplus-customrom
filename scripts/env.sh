@@ -73,6 +73,34 @@ xdkernel_banner() {
 	PY
 }
 
+# Compare the in-tree-built device tree blob against the one the shipped boot.img
+# carries. The MT8176 LK is unforgiving about the DTB, so this is a pre-flash gate,
+# not a curiosity — it was a manual step in the out-of-tree kernel workflow and is
+# kept here now that `mka bacon` builds the kernel itself.
+# Prints DTB-MATCH / DTB-MISMATCH / DTB-SKIP. Returns non-zero only on a real
+# mismatch; a missing reference is a skip, since the reference is a private
+# artifact extracted from the stock boot.img and is not in this repo.
+XDDTB="${XDDTB:-$XDOUT/obj/KERNEL_OBJ/arch/arm64/boot/dts/wisky8176_tb_n.dtb}"
+XDDTB_REF="${XDDTB_REF:-$XDBACKUPS/kernel-prep/shipped-wisky8176_tb_n.dtb}"
+export XDDTB XDDTB_REF
+xddtb_check() {
+	if [ ! -f "$XDDTB" ]; then
+		echo "DTB-SKIP: no built dtb at $XDDTB"; return 0
+	fi
+	if [ ! -f "$XDDTB_REF" ]; then
+		echo "DTB-SKIP: no reference dtb at $XDDTB_REF (set XDDTB_REF)"; return 0
+	fi
+	local a b
+	a=$(md5sum "$XDDTB" | awk '{print $1}')
+	b=$(md5sum "$XDDTB_REF" | awk '{print $1}')
+	if [ "$a" = "$b" ]; then
+		echo "DTB-MATCH: $a"
+		return 0
+	fi
+	echo "DTB-MISMATCH: built $a != shipped $b"
+	return 1
+}
+
 # Optional push notification for long unattended runs. No-op unless NTFY_URL is
 # set — keep the URL and token in xdplus.env (gitignored), never in a script.
 # Any ntfy-compatible endpoint works; failures are swallowed on purpose, a dead
