@@ -159,17 +159,21 @@ You need a LineageOS 18.1 source tree. Point `repo` at the device tree with a lo
 ```
 
 ```sh
+# fetch the device tree first, then let its local manifest pull kernel + vendor
+mkdir -p .repo/local_manifests
+cp device/gpd/xdplus/local_manifests/xdplus.xml .repo/local_manifests/
 repo sync
 source build/envsetup.sh
-breakfast xdplus     # pulls kernel + vendor via lineage.dependencies
+lunch lineage_xdplus-userdebug
 # apply the numbered patches from device/gpd/xdplus/patches/ (see its README)
 brunch xdplus        # → flashable zip
 ```
 
-The scripts in [`scripts/`](scripts/) wrap the device-specific parts: `build.sh`, `flash.sh`, `bootcheck.sh`, `kbuild.sh` for the kernel, and `inject_vendor.sh` for producing a vendor-writing zip. They read their paths from `scripts/env.sh` — set `XDROOT` in a local `scripts/xdplus.env` and nothing else is machine-specific. See [`scripts/README.md`](scripts/README.md).
+The scripts in [`scripts/`](scripts/) wrap the device-specific parts: `build.sh`, `flash.sh`, `bootcheck.sh`, and `inject_vendor.sh` for producing a vendor-writing zip. They read their paths from `scripts/env.sh` — set `XDROOT` in a local `scripts/xdplus.env` and nothing else is machine-specific. See [`scripts/README.md`](scripts/README.md).
 
 Two things that will waste your day if you skip them:
 
+- `breakfast xdplus` does **not** fetch anything here. LineageOS's roomservice hardcodes `LineageOS/<repo>` as the source of every `lineage.dependencies` entry (`vendor/lineage/build/tools/roomservice.py`), and these repos are not under that org — hence the local manifest above, which is also what puts the kernel at the path `TARGET_KERNEL_SOURCE` expects.
 - The kernel is built in-tree by `mka bacon`, from `mt8176_defconfig` plus `arch/arm64/configs/xdplus_kernel.frag`. Without that fragment the DDK version drops to 1.7 against 1.9 blobs and SurfaceFlinger loops forever on `PVRSRVConnectKM: Incompatible driver` — and `kernel.mk` only warns about a missing fragment, so verify the deltas landed in `out/target/product/xdplus/obj/KERNEL_OBJ/.config` before flashing.
 - `mka bacon` writes the **boot** partition too. Every system flash silently replaces the running kernel.
 
