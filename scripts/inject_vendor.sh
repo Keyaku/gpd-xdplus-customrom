@@ -24,7 +24,7 @@ ZIP="$XDZIP"
 # -gpdfp variant additionally rewrites the vendor build.prop fingerprint/date/
 # security_patch from ALLDOCUBE/U1005E to GPD/xdplus (vendor thaw cheap step, §93);
 # pre-thaw image kept as vendor-camerafree-hwcpatched-mmcblk0p23.img.
-VIMG="${XDVENDOR_IMG:-$XDREPO/../vendor-camerafree-hwcpatched-gpdfp-mmcblk0p23.img}"
+VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-camerafree-hwcpatched-gpdfp-mmcblk0p23.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in

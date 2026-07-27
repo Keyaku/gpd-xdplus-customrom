@@ -27,6 +27,14 @@ These assume a full LineageOS 18.1 source tree. They read their paths from `env.
 XDROOT=/path/to/your/lineageos-18.1-tree
 ```
 
+Other things worth setting there:
+* `XDKSRC` (kernel tree).
+* `XDBACKUPS` (where your boot/vendor images live; `env.sh` probes a couple of common layouts otherwise).
+* `KOUT`/`TMPDIR` (kernel out-tree; must not be a small tmpfs).
+* `NTFY_URL` / `NTFY_TOKEN`.
+
+Those last two enable `xdnotify()`, defined in `env.sh` and called by `build.sh` on success and failure — handy for unattended builds. It is a **no-op unless `NTFY_URL` is set**, and it swallows its own errors so a dead notifier can never fail a build. Any ntfy-compatible endpoint works. Keep the URL and token in `xdplus.env`, never in a script.
+
 | Script | Does |
 | --- | --- |
 | `env.sh` | Shared paths. Sourced by the others, never run directly. Picks the newest bacon zip automatically. |
