@@ -28,10 +28,20 @@ fi
 # leaks, all defaulted rather than forced: BUILD_NUMBER otherwise falls back to
 # eng.$USER.$(timestamp) in ro.build.fingerprint, and soong fills ro.build.user /
 # ro.build.host from the invoking account and machine name unless already exported
-# (build/soong/ui/build/kati.go). A bare YYYYMMDD.HHMMSS keeps per-build uniqueness
-# for OTA delta detection. No spoofing: the build stays userdebug/dev-keys on
+# (build/soong/ui/build/kati.go). No spoofing: the build stays userdebug/dev-keys on
 # purpose for the adb-root workflow, this only withholds local account names.
-export BUILD_NUMBER="$(date +%Y%m%d.%H%M%S)"
+#
+# BUILD_NUMBER is a pinned release id, NOT a timestamp. Android's
+# Build.isBuildConsistent() compares ro.system.build.fingerprint against
+# ro.vendor.build.fingerprint, and /vendor here is a frozen partition written
+# out-of-band by inject_vendor.sh — so any per-build value guarantees a mismatch
+# and the "Internal problem with your device" dialog on every boot. Bump
+# XDPLUS_RELEASE only when cutting a release, and re-bake the vendor image with
+# the matching fingerprint in the same session. Per-build uniqueness still exists
+# in ro.build.date.utc and in ro.lineage.version, which is date-stamped from
+# LINEAGE_VERSION and is also what names the zip — pinning this does not freeze
+# output filenames.
+export BUILD_NUMBER="${XDPLUS_RELEASE:-1.0}"
 export BUILD_USERNAME="${BUILD_USERNAME:-xdplus}"
 export BUILD_HOSTNAME="${BUILD_HOSTNAME:-xdplus-builder}"
 {

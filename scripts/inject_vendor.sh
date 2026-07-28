@@ -24,7 +24,12 @@ ZIP="$XDZIP"
 # -gpdfp variant additionally rewrites the vendor build.prop fingerprint/date/
 # security_patch from ALLDOCUBE/U1005E to GPD/xdplus (vendor thaw cheap step, §93);
 # pre-thaw image kept as vendor-camerafree-hwcpatched-mmcblk0p23.img.
-VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-camerafree-hwcpatched-gpdfp-mmcblk0p23.img}"
+# -gpdfp10 further pins ro.vendor.build.fingerprint to the release id 1.0 instead
+# of a build timestamp, so it stays equal to ro.system.build.fingerprint across
+# every rebuild (BUILD_NUMBER in build.sh is pinned to match). A per-build value
+# there fails Build.isBuildConsistent() and raises the "Internal problem with your
+# device" dialog on every boot. Re-bake this image whenever the release id bumps.
+VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-camerafree-hwcpatched-gpdfp10-mmcblk0p23.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in
