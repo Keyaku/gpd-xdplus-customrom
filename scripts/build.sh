@@ -37,11 +37,18 @@ fi
 # out-of-band by inject_vendor.sh — so any per-build value guarantees a mismatch
 # and the "Internal problem with your device" dialog on every boot. Bump
 # XDPLUS_RELEASE only when cutting a release, and re-bake the vendor image with
-# the matching fingerprint in the same session. Per-build uniqueness still exists
+# the matching fingerprint in the same session. The value is the date of the
+# vendor image the system is paired with (ro.vendor.build.date), so the number
+# explains itself; it is NOT the build date and must not track one.
+#
+# This pin is a workaround for /vendor being a hand-baked image, not a design
+# choice. Once the vendor tree generates the vendor build.prop from the same
+# build, both fingerprints can be emitted from the same variables and this
+# should go back to a per-build date. Per-build uniqueness still exists
 # in ro.build.date.utc and in ro.lineage.version, which is date-stamped from
 # LINEAGE_VERSION and is also what names the zip — pinning this does not freeze
 # output filenames.
-export BUILD_NUMBER="${XDPLUS_RELEASE:-1.0}"
+export BUILD_NUMBER="${XDPLUS_RELEASE:-20260720}"
 export BUILD_USERNAME="${BUILD_USERNAME:-xdplus}"
 export BUILD_HOSTNAME="${BUILD_HOSTNAME:-xdplus-builder}"
 {
