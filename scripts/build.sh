@@ -54,6 +54,24 @@ fi
 export BUILD_NUMBER="${XDPLUS_RELEASE:-$(date +%Y%m%d%H%M)}"
 export BUILD_USERNAME="${BUILD_USERNAME:-xdplus}"
 export BUILD_HOSTNAME="${BUILD_HOSTNAME:-xdplus-builder}"
+
+# ⚠️ BUILD_NUMBER is deliberately kept OUT of ninja's dependency graph by AOSP, so
+# changing it does NOT mark build.prop dirty. Measured: build_number.txt and
+# build_fingerprint.txt both advanced to the new value while system/build.prop and
+# product/build.prop still carried the previous one. Without this, the "per-build"
+# incremental silently freezes at whichever build last happened to regenerate
+# build.prop — the exact uselessness the old pinned value was criticised for.
+#
+# product/ and system_ext/ carry their own fingerprints and are NOT marked dirty by
+# deleting system/build.prop; they were found two builds stale that way once. Delete
+# all four, including the intermediate, and let them regenerate. Costs seconds.
+for bp in "$XDOUT/system/build.prop" \
+          "$XDOUT/system/product/build.prop" \
+          "$XDOUT/system/system_ext/build.prop" \
+          "$XDOUT/obj/ETC/system_build_prop_intermediates/build.prop"; do
+	rm -f "$bp"
+done
+
 {
 	source build/envsetup.sh
 	lunch lineage_xdplus-userdebug
