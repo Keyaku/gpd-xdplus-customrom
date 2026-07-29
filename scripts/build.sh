@@ -31,24 +31,27 @@ fi
 # (build/soong/ui/build/kati.go). No spoofing: the build stays userdebug/dev-keys on
 # purpose for the adb-root workflow, this only withholds local account names.
 #
-# BUILD_NUMBER is a pinned release id, NOT a timestamp. Android's
+# BUILD_NUMBER is a per-build timestamp again, and ro.build.version.incremental
+# with it. It was pinned to a fixed release id for a while because
 # Build.isBuildConsistent() compares ro.system.build.fingerprint against
-# ro.vendor.build.fingerprint, and /vendor here is a frozen partition written
-# out-of-band by inject_vendor.sh — so any per-build value guarantees a mismatch
-# and the "Internal problem with your device" dialog on every boot. Bump
-# XDPLUS_RELEASE only when cutting a release, and re-bake the vendor image with
-# the matching fingerprint in the same session. The value is the date of the
-# vendor image the system is paired with (ro.vendor.build.date), so the number
-# explains itself; it is NOT the build date and must not track one.
+# ro.vendor.build.fingerprint and raises "Internal problem with your device" on any
+# mismatch — and the incremental is part of the fingerprint, so a per-build value
+# guaranteed a mismatch against a frozen /vendor. That is fixed at the source now:
+# ro.vendor.build.fingerprint is deliberately EMPTY in the vendor tree, and the
+# check skips the comparison entirely when it is. The vendor partition is a frozen
+# third-party blob set with no build identity of its own, so empty is the honest
+# value; ro.vendor.xdplus.blobs records what it actually is.
 #
-# This pin is a workaround for /vendor being a hand-baked image, not a design
-# choice. Once the vendor tree generates the vendor build.prop from the same
-# build, both fingerprints can be emitted from the same variables and this
-# should go back to a per-build date. Per-build uniqueness still exists
-# in ro.build.date.utc and in ro.lineage.version, which is date-stamped from
-# LINEAGE_VERSION and is also what names the zip — pinning this does not freeze
-# output filenames.
-export BUILD_NUMBER="${XDPLUS_RELEASE:-20260720}"
+# ⚠️ Do not put a fingerprint back in the vendor build.prop. A non-empty value that
+# is not character-for-character equal to the system one brings the dialog straight
+# back, and keeping them equal would mean re-baking and re-flashing the 400 MB
+# vendor partition on every single build.
+#
+# Minutes, not just the date: several builds a day is normal here, and a date-only
+# incremental would collide between them — which is exactly what made the pinned
+# value useless as a discriminator. XDPLUS_RELEASE still overrides, for cutting a
+# release with a chosen id.
+export BUILD_NUMBER="${XDPLUS_RELEASE:-$(date +%Y%m%d%H%M)}"
 export BUILD_USERNAME="${BUILD_USERNAME:-xdplus}"
 export BUILD_HOSTNAME="${BUILD_HOSTNAME:-xdplus-builder}"
 {
