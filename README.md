@@ -129,6 +129,10 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 >
 > It will cover, in brief: open bugs and their current state, with the multi-stage work (Vulkan, HDMI output) broken down into what has landed and what is left; and the milestone list — Widevine L3 verification, SELinux enforcing, `/data` encryption, an SP Flash Tool release package, and how far up the LineageOS versions this hardware can be pushed before the 8.1-era blobs make it impossible.
 
+One quirk is worth stating up front, because it looks like a bug and is not:
+
+- **The "Gamepad Mapper" button does nothing, by choice.** On stock it opened GPD's own key-remapping overlay, which is not part of this port, so the button has no owner here. Rather than give it an unrelated job, it is left inert for this release: the key layout maps it to an otherwise-unused keycode so that a future feature can claim it cleanly. Giving it a real purpose is planned, and it is the only hardware control on the device that currently has no effect.
+
 ## Installing
 
 Short version, on a device that already has TWRP:
