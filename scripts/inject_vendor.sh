@@ -19,19 +19,28 @@ set -euo pipefail
 source "$(dirname "$0")/env.sh"
 
 ZIP="$XDZIP"
-# camerafree + §60/§72 acqfd-patched hwcomposer (stock-abort → graceful close);
-# pristine camerafree image kept alongside as vendor-camerafree-mmcblk0p23.img.
-# -gpdfp variant additionally rewrites the vendor build.prop fingerprint/date/
-# security_patch from ALLDOCUBE/U1005E to GPD/xdplus (vendor thaw cheap step, §93);
-# pre-thaw image kept as vendor-camerafree-hwcpatched-mmcblk0p23.img.
-# -gpdfp20260720 further pins ro.vendor.build.fingerprint to a fixed release id —
-# this image's own ro.vendor.build.date — instead of a build timestamp, so it stays
-# equal to ro.system.build.fingerprint across every rebuild (BUILD_NUMBER in
-# build.sh is pinned to match). A per-build value there fails
+# The vendor image is now a BUILD PRODUCT of the tracked blob set, not a hand-baked
+# artifact: regenerate it any time with
+#   vendor/gpd/xdplus/build_vendor_image.sh -o "$XDBACKUPS/vendor-fromtree-<date>-mmcblk0p23.img"
+# and point XDVENDOR_IMG at the result. That tree carries the blobs plus the
+# ownership, modes, file capabilities and SELinux labels git cannot store; the
+# script's --verify compares content and metadata against a reference image, and
+# two bakes are byte-identical.
+#
+# Contents, all deliberate, and all reproduced by the bake: camera stripped (the
+# device has none); §60/§72 acqfd-patched hwcomposer (stock aborts on an unclosed
+# acquire fd); mic route fix in mixer_paths.xml; and a vendor build.prop whose
+# fingerprint/date/security_patch read GPD/xdplus rather than ALLDOCUBE/U1005E,
+# with ro.vendor.build.fingerprint pinned to a fixed release id instead of a build
+# timestamp so it stays equal to ro.system.build.fingerprint across every rebuild
+# (BUILD_NUMBER in build.sh is pinned to match). A per-build value there fails
 # Build.isBuildConsistent() and raises the "Internal problem with your device"
-# dialog on every boot. Re-bake this image whenever the release id bumps, and bump
-# the release id only when vendor CONTENT changes, not for metadata edits.
-VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-camerafree-hwcpatched-gpdfp20260720-mmcblk0p23.img}"
+# dialog on every boot. Bump the release id only when vendor CONTENT changes, not
+# for metadata edits, and re-bake in the same operation.
+#
+# The superseded hand-baked chain is kept for provenance only:
+# vendor-backup (stock) -> -camerafree -> -hwcpatched -> -gpdfp -> -gpdfp20260720.
+VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-fromtree-20260729-mmcblk0p23.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in
