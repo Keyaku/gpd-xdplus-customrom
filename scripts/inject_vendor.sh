@@ -40,7 +40,13 @@ ZIP="$XDZIP"
 #
 # The superseded hand-baked chain is kept for provenance only:
 # vendor-backup (stock) -> -camerafree -> -hwcpatched -> -gpdfp -> -gpdfp20260720.
-VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-fromtree-20260729-mmcblk0p23.img}"
+# Default is the newest tree-baked image. The 20260729 (no suffix) image is the
+# pre-empty-fingerprint bake: flashing it brings back the "internal problem with
+# your device" dialog on every boot because its pinned ro.vendor.build.fingerprint
+# no longer matches the per-build system fingerprint. 20260729b is the bake with
+# the deliberately empty vendor fingerprint. If you re-bake, point this (or
+# XDVENDOR_IMG) at the new output and verify the fingerprint line is empty.
+VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-fromtree-20260729b-mmcblk0p23.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in
