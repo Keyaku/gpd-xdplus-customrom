@@ -68,7 +68,7 @@ Only branches for versions actually supported are carried. Today that means **`l
 
 - **LineageOS 18.1 / Android 11**, up from the stock Android 7.0, a four-version jump on 2018 vendor blobs.
 - **Kernel built from source** (3.18.79) rather than lifted from a shipped image, including an Android-11 binder ABI backport the 2019-era GPL tree predates.
-- **Release-signed** builds; upstream framework changes carried as **14 numbered patches** with per-patch rationale, not as forks of `frameworks/*`.
+- **Release-signed** builds; upstream framework changes carried as **27 numbered patches** with per-patch rationale, not as forks of `frameworks/*`.
 
 ### Graphics
 
@@ -91,7 +91,7 @@ Only branches for versions actually supported are carried. Today that means **`l
 ### Connectivity
 
 - **2.4 GHz 802.11n & 5 GHz 802.11ac**.
-- **Power-save pinned off.** The MT6630 driver mishandles 802.11 power-save and access points kick the device under sustained load, so the radio is kept awake deliberately. It costs standby battery.
+- **Power-save handled by screen state.** The MT6630 driver mishandles 802.11 power-save and access points kick the device under sustained load, so the radio is kept awake while the screen is on and allowed back into power-save when it is off. Pinning it off unconditionally was the first fix and cost real standby battery; making it screen-conditional keeps the link stable in use without paying for it idle.
 - **Wi-Fi self-recovery.** The combo chip's Bluetooth firmware asserts on roughly one boot in five, taking `wlan0` down with it. AOSP parks Wi-Fi off until you toggle it by hand; this port retries until the chip is back.
 - **Bluetooth 4.1**.
 
