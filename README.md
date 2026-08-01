@@ -92,8 +92,8 @@ Only branches for versions actually supported are carried. Today that means **`l
 
 - **2.4 GHz 802.11n & 5 GHz 802.11ac**.
 - **Power-save handled by screen state.** The MT6630 driver mishandles 802.11 power-save and access points kick the device under sustained load, so the radio is kept awake while the screen is on and allowed back into power-save when it is off. Pinning it off unconditionally was the first fix and cost real standby battery; making it screen-conditional keeps the link stable in use without paying for it idle.
-- **Wi-Fi self-recovery.** The combo chip's Bluetooth firmware asserts on roughly one boot in five, taking `wlan0` down with it. AOSP parks Wi-Fi off until you toggle it by hand; this port retries until the chip is back.
-- **Bluetooth 4.1**.
+- **Wi-Fi self-recovery.** If the combo chip resets during bring-up, AOSP parks Wi-Fi off until you toggle it by hand. This port retries until the interface is back, so a failed bring-up heals itself instead of needing the user.
+- **Bluetooth 4.1**, with pairing and A2DP audio working. The HAL writes each HCI packet as a two-part `writev()`, and the chip's kernel driver had no `write_iter` handler — so every packet reached the MT6630 as two separate transport frames and the firmware parked itself. Adding the handler fixed it.
 
 ### Security and system
 
