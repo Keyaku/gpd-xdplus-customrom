@@ -92,8 +92,9 @@ Only branches for versions actually supported are carried. Today that means **`l
 
 - **2.4 GHz 802.11n & 5 GHz 802.11ac**.
 - **Power-save handled by screen state.** The MT6630 driver mishandles 802.11 power-save and access points kick the device under sustained load, so the radio is kept awake while the screen is on and allowed back into power-save when it is off. Pinning it off unconditionally was the first fix and cost real standby battery; making it screen-conditional keeps the link stable in use without paying for it idle.
-- **Wi-Fi self-recovery.** If the combo chip resets during bring-up, AOSP parks Wi-Fi off until you toggle it by hand. This port retries until the interface is back, so a failed bring-up heals itself instead of needing the user.
-- **Bluetooth 4.1**, with pairing and A2DP audio working. The HAL writes each HCI packet as a two-part `writev()`, and the chip's kernel driver had no `write_iter` handler — so every packet reached the MT6630 as two separate transport frames and the firmware parked itself. Adding the handler fixed it.
+- **Bluetooth 4.1**, with pairing and A2DP audio. The HAL writes each HCI packet as a two-part `writev()`, and the chip's kernel driver had no `write_iter` handler — so every packet reached the MT6630 as two separate transport frames and the firmware parked itself. Adding the handler fixed it.
+- **Both radios patched, and they share one chip without fighting over it.** Wi-Fi and Bluetooth are each fixed in their own right and run together; neither takes the other down. Wi-Fi additionally keeps a recovery path that restarts the interface rather than parking it off, which stock Android does — a safety net rather than a symptom.
+- The only Wi-Fi gap is **WPA3/SAE**, below.
 
 ### Security and system
 
