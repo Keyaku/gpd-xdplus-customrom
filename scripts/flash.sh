@@ -19,7 +19,14 @@ fi
 if ! adb devices | grep -q 'recovery$'; then
 	adb reboot bootloader 2>/dev/null
 	for _ in $(seq 1 40); do fastboot devices 2>/dev/null | grep -q fastboot && break; sleep 3; done
-	fastboot oem reboot-recovery >/dev/null 2>&1
+	# ⚠️ Bounded, because this command succeeds by making the device disappear.
+	# The device leaves the fastboot bus for recovery and the client then waits
+	# forever for a reply that can never arrive -- observed hanging 7 minutes with
+	# the device sitting happily in TWRP and nothing on its screen, which reads
+	# exactly like a dead flash. A timeout here is not a failure path: the only
+	# way to know it worked is the recovery-state loop below, so treat the hang
+	# and the clean return identically and let that loop be the judge.
+	timeout 20 fastboot oem reboot-recovery >/dev/null 2>&1
 fi
 for _ in $(seq 1 40); do adb devices | grep -q 'recovery$' && break; sleep 5; done
 adb devices | grep -q 'recovery$' || { echo "FLASH-FAIL: no recovery"; exit 2; }
