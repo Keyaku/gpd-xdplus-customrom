@@ -24,6 +24,8 @@ Read the whole of [Before you start](#before-you-start) before touching anything
 
 **Back up first, and it is one command.** `nvdata`, `nvram`, `proinfo`, `protect1` and `protect2` hold your unit's Wi-Fi/Bluetooth MAC addresses, radio and sensor calibration and DRM keys. They exist nowhere else in the world — no download recovers them. `./scripts/xdplus-preloader.sh backup ~/xdplus-backup` saves them, plus `boot` and `recovery`, and writes nothing.
 
+**On the device:** enable **Developer options → USB debugging** before you start, and accept the authorization prompt when you first plug into your PC. Releases are `user` builds, so adb is authorized rather than open. ⚠️ This only matters for the first hop — getting a *running* system into recovery. Once the device is in TWRP, recovery's own adb needs no authorization, which is why the install itself works even on a device that will not boot.
+
 **Requirements on the PC:** `adb` and `fastboot` (Android platform-tools). Path B additionally needs [mtkclient](https://github.com/bkerler/mtkclient) and Python 3 — it runs natively on Linux, and needs neither SP Flash Tool, nor Wine, nor Windows VCOM drivers.
 
 ## Which path do I need?
