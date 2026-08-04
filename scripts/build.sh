@@ -72,9 +72,24 @@ for bp in "$XDOUT/system/build.prop" \
 	rm -f "$bp"
 done
 
+# Build variant. Development builds are userdebug, because `adb root` is gated on
+# ro.debuggable and most of the tooling here leans on it. RELEASES ARE `user`:
+# set XDVARIANT=user (or XDPLUS_RELEASE, which implies it) for anything published.
+#
+# ⚠️ A `user` build does NOT remove root — Magisk is a separate mechanism and
+# works fine on one. What it removes is `adb root`: adbd checks ro.debuggable
+# itself (system/core/adb/daemon/main.cpp, should_drop_privileges) and refuses
+# with "adbd cannot run as root in production builds". Scripts that assumed a
+# root adbd must go through `su -c` instead; they already fall back that way.
+# It also stops init starting the `console` service, which is what a userdebug
+# build has running on /dev/console.
+XDVARIANT="${XDVARIANT:-$([ -n "${XDPLUS_RELEASE:-}" ] && echo user || echo userdebug)}"
+case "$XDVARIANT" in user|userdebug|eng) ;; *) echo "bad XDVARIANT: $XDVARIANT" >&2; exit 2;; esac
+echo "BUILD-VARIANT $XDVARIANT" >> "$XDLOG"
+
 {
 	source build/envsetup.sh
-	lunch lineage_xdplus-userdebug
+	lunch "lineage_xdplus-$XDVARIANT"
 	mka bacon
 } >> "$XDLOG" 2>&1
 RC=$?

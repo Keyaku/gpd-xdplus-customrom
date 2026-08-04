@@ -8,7 +8,7 @@ Read the whole of [Before you start](#before-you-start) before touching anything
 - [Path B — the preloader (first-time and unbrick)](#path-b--the-preloader-first-time-and-unbrick)
 - [After the first boot](#after-the-first-boot)
 - [Updating later](#updating-later)
-- [Root (Magisk)](#root-magisk)
+- [Root (Magisk)](#root-magisk) — and [ROOT.md](ROOT.md)
 - [Troubleshooting](#troubleshooting)
 
 ## Before you start
@@ -204,7 +204,9 @@ Remember the boot partition rule on every single update, not just the first: if 
 
 ## Root (Magisk)
 
-Root lives in the boot image, and there is no `fastboot boot` escape hatch on a locked bootloader, so the loop is:
+**Releases are `user` builds**, the same variant a shipped phone runs — so no `adb root`, and no "Serial console enabled" notification. That does **not** stop you rooting: Magisk is a separate mechanism and works the same on a `user` build. Full instructions, including what the variant does and does not change, are in **[ROOT.md](ROOT.md)**.
+
+The device-specific mechanics, in short. Root lives in the boot image, and there is no `fastboot boot` escape hatch on a locked bootloader, so the loop is:
 
 1. Install the ROM zip (Path A).
 2. Pull the newly installed boot image out of the device, patch it with the Magisk app, or reuse a boot.img you patched earlier for this same build.
