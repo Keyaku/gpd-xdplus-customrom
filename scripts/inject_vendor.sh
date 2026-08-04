@@ -46,7 +46,12 @@ ZIP="$XDZIP"
 # no longer matches the per-build system fingerprint. 20260729b is the bake with
 # the deliberately empty vendor fingerprint. If you re-bake, point this (or
 # XDVENDOR_IMG) at the new output and verify the fingerprint line is empty.
-VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-fromtree-20260729b-mmcblk0p23.img}"
+# 20260804 is the slimmed bake: the OpenCL stack, the MediaTek RenderScript driver
+# and the whole RIL cluster were dropped from the tracked blob set (unreachable on
+# a SIM-less device with no public.libraries entry for libOpenCL.so), taking the
+# tree from 141 MB to 73 MB. Pointing this back at an older image silently
+# reinstates ~68 MB of dead blobs.
+VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-slim-20260804.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in
