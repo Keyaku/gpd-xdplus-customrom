@@ -12,6 +12,28 @@ Only one script matters, and it needs nothing but `adb`, `fastboot` and the rele
 
 It routes the device into TWRP, verifies the transfer by md5, installs, clears the boot control block and reboots. Read [`docs/INSTALL.md`](../docs/INSTALL.md) first — in particular, it cannot put TWRP onto a stock device, and it will drop Magisk unless you pass `--boot`.
 
+**If the device has no TWRP, or does not boot at all**, that one cannot help you and `xdplus-preloader.sh` is where to go:
+
+```sh
+./scripts/xdplus-preloader.sh identify              # what is this device? read-only
+./scripts/xdplus-preloader.sh backup ~/xdplus-backup
+```
+
+It talks to the MT8176 boot ROM, which answers on every power-up whether or not Android, TWRP, fastboot or the display work — **no SP Flash Tool, no Wine, no Windows drivers**, just [mtkclient](https://github.com/bkerler/mtkclient) and Python. Point `XDPL_MTKDIR` at a mtkclient checkout.
+
+| Command | Does |
+| --- | --- |
+| `identify` | SoC, partition table, and whether the layout is `STOCK` or `XDPLUS`. `--board-check` also hashes `lk` to tell the new ("VR") board from the old one — which works on a device that cannot boot, unlike GPD's own build-number test. |
+| `backup <dir>` | Dumps `proinfo`/`nvram`/`nvdata`/`protect1`/`protect2` plus `boot` and `recovery`. **Run this before anything else** — those five are unique to your unit and no download replaces them. |
+| `restore <dir> <part>` | Writes one partition back. |
+| `install <dir>` | Writes `boot`/`recovery`/`system`/`vendor` from a directory of images. |
+
+⚠️ It never writes `preloader`, `seccfg` or the bootloader lock state, and there is no flag that makes it — those are the only writes on this device that cannot be undone.
+
+⚠️ **Every session leaves the device parked in preloader mode**, which looks exactly like a brick: red LED, no adb, no fastboot, power button apparently dead. **Unplug the cable first**, then hold power ~10s. Budget one power cycle per operation.
+
+⚠️ Write operations are **implemented but not yet verified on hardware**; reads are proven exact. `install --repartition`, needed for a stock device that has no `vendor` partition, is deliberately not implemented yet.
+
 | Flag | Effect |
 | --- | --- |
 | `--boot <img>` | `dd` this boot.img after the zip. Required to keep Magisk, since the zip writes `boot` itself. |

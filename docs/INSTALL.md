@@ -5,7 +5,7 @@ Read the whole of [Before you start](#before-you-start) before touching anything
 - [Before you start](#before-you-start)
 - [Which path do I need?](#which-path-do-i-need)
 - [Path A — install via TWRP (normal case)](#path-a--install-via-twrp-normal-case)
-- [Path B — SP Flash Tool (first-time and unbrick)](#path-b--sp-flash-tool-first-time-and-unbrick)
+- [Path B — the preloader (first-time and unbrick)](#path-b--the-preloader-first-time-and-unbrick)
 - [After the first boot](#after-the-first-boot)
 - [Updating later](#updating-later)
 - [Root (Magisk)](#root-magisk)
@@ -15,25 +15,26 @@ Read the whole of [Before you start](#before-you-start) before touching anything
 
 **The bootloader is locked, and everything here assumes it stays that way.** Unlocking may well be technically possible on this hardware; it has not been attempted, and neither has re-locking, because the downside of getting it wrong is an unusable device. Nothing below needs an unlocked bootloader. Consequences you have to internalise:
 
-- **`fastboot flash` does not work.** It is refused. Every partition write happens either from inside TWRP or from SP Flash Tool over the preloader.
+- **`fastboot flash` does not work.** It is refused. Every partition write happens either from inside TWRP or over the MediaTek preloader (Path B).
 - `fastboot oem reboot-recovery` **does** work, and is how the scripts reach TWRP.
 - **Changing the kernel means `dd`, not flashing.** boot.img updates are written from a shell inside TWRP.
 - **OTA auto-install cannot complete.** The Updater app downloads and verifies fine, but the reboot-and-apply step needs a bootloader the device doesn't have. Downloads still work; you install them by hand.
 
-**You need TWRP on the recovery partition already.** This ROM's installer cannot put it there — TWRP itself comes from SP Flash Tool (Path B).
+**You need TWRP on the recovery partition already.** This ROM's installer cannot put it there — TWRP itself comes from [Path B](#path-b--the-preloader-first-time-and-unbrick).
 
-**Back up first.** `nvdata` and `nvram` hold your device's Wi-Fi/Bluetooth MAC addresses and calibration. If you erase them and have no backup, they are not recoverable from anywhere else. A full SP Flash Tool readback before you begin is cheap insurance.
+**Back up first, and it is one command.** `nvdata`, `nvram`, `proinfo`, `protect1` and `protect2` hold your unit's Wi-Fi/Bluetooth MAC addresses, radio and sensor calibration and DRM keys. They exist nowhere else in the world — no download recovers them. `./scripts/xdplus-preloader.sh backup ~/xdplus-backup` saves them, plus `boot` and `recovery`, and writes nothing.
 
-**Requirements on the PC:** `adb` and `fastboot` (Android platform-tools). Path B additionally needs SP Flash Tool and, on Windows, the MediaTek VCOM/preloader drivers.
+**Requirements on the PC:** `adb` and `fastboot` (Android platform-tools). Path B additionally needs [mtkclient](https://github.com/bkerler/mtkclient) and Python 3 — it runs natively on Linux, and needs neither SP Flash Tool, nor Wine, nor Windows VCOM drivers.
 
 ## Which path do I need?
 
 | Your device right now | Path |
 | --- | --- |
 | Already running this ROM, or another ROM, **with TWRP installed** | [A](#path-a--install-via-twrp-normal-case) |
-| Stock GPD Android 7, or any state without TWRP | [B](#path-b--sp-flash-tool-first-time-and-unbrick) first, then A |
+| Stock GPD Android 7, or any state without TWRP | [B](#path-b--the-preloader-first-time-and-unbrick) first, then A |
 | Bootlooping, but recovery still reachable | [A](#path-a--install-via-twrp-normal-case) with `--wipe` |
-| Dead: no display, no adb, no fastboot | [B](#path-b--sp-flash-tool-first-time-and-unbrick) |
+| Dead: no display, no adb, no fastboot | [B](#path-b--the-preloader-first-time-and-unbrick) |
+| Not sure what you are even holding | `./scripts/xdplus-preloader.sh identify` — read-only, answers it in one step |
 
 ## Path A — install via TWRP (normal case)
 
@@ -75,28 +76,89 @@ This is the single most common way people lose root here. The build's `boot` ima
 
 `/vendor` on this device is a real partition (`mmcblk0p23`) holding camera-stripped, prebuilt vendor blobs — the standard ROM zip does **not** touch it. If a release is published as a `-CAMFREE` zip, that variant additionally writes `vendor` and you install it exactly the same way. Install the plain zip on a device whose vendor partition is already correct; install the `-CAMFREE` zip when coming from stock or when a release note says the vendor set changed.
 
-## Path B — SP Flash Tool (first-time and unbrick)
+## Path B — the preloader (first-time and unbrick)
 
-SP Flash Tool talks to the MediaTek **preloader** over USB, below Android and below the bootloader. It is the only way to install TWRP on a locked device, and the only way back from a device that shows nothing at all.
+Below Android, below TWRP and below the bootloader, the MT8176 boot ROM answers on **every** power-up, for a fraction of a second, whether or not the device can boot, show anything or reach adb. That window is how a stock device gets TWRP, and how a device showing nothing at all comes back.
 
-> **TODO:** this project does not yet publish its own SP Flash Tool package. It is a planned release artifact — a scatter set matching the layout below. Until then, use the SPFlash package of the previous unofficial 18.1 build for TWRP and for unbricking, then install this ROM over it via Path A.
+Historically this meant SP Flash Tool, Windows and MediaTek VCOM drivers. **It no longer does.** [mtkclient](https://github.com/bkerler/mtkclient) speaks the same protocol natively, and `scripts/xdplus-preloader.sh` wraps it with this device's specifics.
 
-A complete XD+ scatter package looks like this — `MBR`, `preloader.bin`, `lk.bin`, `logo.bin`, `tz.img`, `secro.img`, `boot.img`, `recovery.img`, `system.img`, `vendor.img`, `cache.img`, `userdata.img`, `nvdata.img`, `nvram.bin`, plus the `APDB_MT8173_*` database files and the scatter text file itself.
+This works because the XD+ boot ROM is completely unprotected — it reports `SBC`, `SLA` and `DAA` all disabled — so no signed loader and no exploit is involved.
 
-**Procedure:**
+### Setup
 
-1. Install SP Flash Tool. On Windows also install the MediaTek USB VCOM / preloader drivers — without them the device enumerates for about two seconds and vanishes.
-2. Load the **scatter file** from the package.
-3. Choose the mode:
-   - **Download Only** — writes just the checked partitions. This is what you want almost always.
-   - **Firmware Upgrade** — writes everything including `preloader`. Only for a genuinely dead device, and only with a package that is known-good for the XD+.
-   - **Format All + Download** — ⚠️ **never.** It erases `nvdata`/`nvram` and takes your Wi-Fi and Bluetooth MAC addresses with them.
-4. **Uncheck `nvdata` and `nvram`** unless you are deliberately restoring your own backup of them. They are device-specific calibration, not ROM content.
-5. To install *only* TWRP, uncheck everything except `recovery`.
-6. Press **Download**, then connect the device **powered off** (hold Volume Up while plugging in if it does not enumerate). The flash begins on its own.
-7. Wait for the green tick. Unplug, then boot to recovery to confirm TWRP came up.
+```sh
+git clone https://github.com/bkerler/mtkclient
+cd mtkclient && python -m venv .venv && .venv/bin/pip install -r requirements.txt
+export XDPL_MTKDIR=$PWD
+```
 
-Then continue with [Path A](#path-a--install-via-twrp-normal-case).
+On Linux you need udev rules for the MediaTek VID (`0e8d`) or you must run as root; mtkclient ships them.
+
+### 1. Find out what you have — read-only
+
+```sh
+./scripts/xdplus-preloader.sh identify
+./scripts/xdplus-preloader.sh identify --board-check   # also reads lk
+```
+
+It reports the SoC, the partition table and which of two layouts you are on:
+
+- **STOCK** — GPD's own layout. There is **no `vendor` partition**, and `boot`/`recovery` are 16 MB where this ROM needs 64 MB and 96 MB. Installing here needs the partition table rewritten first; see [the repartition problem](#the-repartition-problem).
+- **XDPLUS** — already repartitioned for this ROM. Everything below works directly.
+
+`--board-check` reads the `lk` partition and hashes it against GPD's own `lk.bin` for the **new ("VR") board**. GPD's published test is to look for `VR` in the build number under Settings → About tablet, which is useless for a device that cannot boot — and it is destroyed the moment you flash any custom ROM. The hash works offline, on a dark device, forever.
+
+⚠️ If `identify` reports anything other than SoC `0x8176`, stop. The original GPD **XD** is a different device with a Rockchip SoC, and this ROM is not for it.
+
+### 2. Back up what cannot be downloaded
+
+```sh
+./scripts/xdplus-preloader.sh backup ~/xdplus-backup
+```
+
+Saves `proinfo`, `nvram`, `nvdata`, `protect1`, `protect2` — your unit's MAC addresses, calibration and keys — plus `boot` and `recovery`, with md5sums. **Do this before anything else.** These partitions are unique to your device; if you lose them, no firmware download brings them back.
+
+### 3. Write
+
+```sh
+./scripts/xdplus-preloader.sh install <dir>            # boot/recovery/system/vendor
+./scripts/xdplus-preloader.sh restore ~/xdplus-backup recovery   # one partition back
+```
+
+The script writes only `boot`, `recovery`, `system` and `vendor`. ⚠️ **It never writes `preloader`, `seccfg` or the bootloader lock state, and no option makes it.** Those are the parts that are not recoverable — get them wrong and the device is finished — whereas any of the four it does write can simply be written again.
+
+### ⚠️ The session always ends with the device looking dead
+
+When a preloader session finishes — success or failure — the device stays parked in Download Agent mode: red LED, no adb, no fastboot, and **the power button appears not to work**. Nothing is wrong and nothing was written that you did not ask for.
+
+**Unplug the USB cable first, then hold power for ~10 seconds.** The cable is the reason: with USB power present the chip re-powers straight back into the preloader, which is exactly what makes the button feel dead. `mtk reset` does not help — it will tell you to pull the cable.
+
+Budget **one power cycle per operation.** `identify --board-check` needs two sessions, so it asks before the second.
+
+### The repartition problem
+
+A stock XD+ cannot receive this ROM as-is. The layouts differ from `boot` onward:
+
+| | Stock GPD | This ROM |
+| --- | --- | --- |
+| `boot` | 16 MB | **64 MB** |
+| `recovery` | 16 MB | **96 MB** |
+| `system` | 3 GB | 2.6 GB |
+| `vendor` | **absent** | **400 MB** |
+| `cache` | 1.5 GB | 400 MB |
+
+So a first-time install has to write a new partition table, which destroys everything on the device — including the calibration partitions if they are not backed up first.
+
+**`--repartition` is not implemented yet.** It refuses with an explanation rather than doing something unverified: writing a GPT is the one operation here whose failure is not obviously recoverable, and it will not ship until it has been tested end to end. Until then, a stock device still needs the previous unofficial build's SP Flash Tool package once, to establish the layout and put TWRP on; after that this script and [Path A](#path-a--install-via-twrp-normal-case) cover everything.
+
+### Status of each operation
+
+| Operation | Writes? | Verified on hardware |
+| --- | --- | --- |
+| `identify` | no | ✅ yes |
+| `backup` | no | ✅ reads are exact — a 96 MB partition read back md5-identical to a reference `dd` |
+| `install` / `restore` | yes | ⚠️ **not yet** — the write path is implemented but has not been run end to end |
+| `install --repartition` | yes | ❌ not implemented |
 
 ## After the first boot
 
