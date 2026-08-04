@@ -161,7 +161,7 @@ This is exactly what SP Flash Tool's **"Format All + Download"** step did in the
 
 The table is written to offset 0 of the user area, which is the `pgpt` partition. **It does not touch the preloader**, which lives in the eMMC boot area — so a bad table is recoverable by writing a good one from here.
 
-⚠️ **This path has not been run end to end.** It refuses a blob without a valid `EFI PART` signature, requires a typed confirmation, and destroys everything on the device including the calibration partitions. Back up first and verify the md5sums came out.
+⚠️ **This particular path has not been run end to end** — writing *partitions* is verified, writing the *partition table* is not, and they are not the same risk. It refuses a blob without a valid `EFI PART` signature, requires a typed confirmation, and destroys everything on the device including the calibration partitions. Back up first and verify the md5sums came out.
 
 **One thing you must do that the tooling cannot do for you:** the original instructions had you read your *own* `nvram` and `nvdata` off the device and substitute them into the package before flashing, because "Format All" erases them and the package's copies belong to somebody else's device. `backup` is the equivalent step here — and afterwards, restore your own with `restore ~/xdplus-backup nvram` and `restore ~/xdplus-backup nvdata`. ⚠️ **Flashing a stranger's `nvram`/`nvdata` gives you their MAC addresses and their radio calibration.**
 
@@ -171,7 +171,7 @@ The table is written to offset 0 of the user area, which is the `pgpt` partition
 | --- | --- | --- |
 | `identify` | no | ✅ yes |
 | `backup` | no | ✅ reads are exact — a 96 MB partition read back md5-identical to a reference `dd` |
-| `install` / `restore` | yes | ⚠️ **not yet** — the write path is implemented but has not been run end to end |
+| `install` / `restore` | yes | ✅ **yes** — a 1 MB write landed byte-exactly, with every byte outside the written range unchanged |
 | `install --repartition` | yes | ⚠️ **not yet** — implemented, blob validated against a live device, never executed |
 
 ## After the first boot

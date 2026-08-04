@@ -32,7 +32,7 @@ It talks to the MT8176 boot ROM, which answers on every power-up whether or not 
 
 ⚠️ **Every session leaves the device parked in preloader mode**, which looks exactly like a brick: red LED, no adb, no fastboot, power button apparently dead. **Unplug the cable first**, then hold power ~10s. Budget one power cycle per operation.
 
-⚠️ Write operations are **implemented but not yet verified on hardware**; reads are proven exact. `install --repartition`, needed for a stock device that has no `vendor` partition, is deliberately not implemented yet.
+✅ Reads and writes are both verified on hardware: a write landed byte-exactly and left every byte outside the written range untouched. ⚠️ `install --repartition` is the exception — writing the partition *table* is a different risk from writing a partition, and that one has not been executed.
 
 | Flag | Effect |
 | --- | --- |
