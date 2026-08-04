@@ -27,8 +27,7 @@ A daily-usable LineageOS 18.1 build for the GPD XD+, running on a **kernel built
 
 The device is configured as a **SIM-less, camera-less handheld**, because that's what it physically is.
 
-The hard constraint that shapes everything here: **the bootloader is locked and should not be unlocked.** No `fastboot flash`, ever. Installs go through TWRP, kernel changes go through `dd`, and OTA auto-install cannot complete. Read [`docs/INSTALL.md`](docs/INSTALL.md) before you flash anything.
-Whether unlocking is doable, and whether re-locking is _as_ doable, has not been researched — for fear of bricking the device or leaving it in an unusable state.
+**The bootloader stays locked, and that is not a limitation here.** This is a 2018 MediaTek device, not a modern one: the SoC's boot ROM download mode is wide open, so every partition can be read and written over USB regardless of the lock state — the lock only means `fastboot flash` is refused. Installs go through TWRP, kernel changes go through `dd`, and a device that will not boot at all comes back over the preloader. Nothing in this port needs an unlocked bootloader, and unlocking was never attempted because there is nothing to gain from it. [`docs/INSTALL.md`](docs/INSTALL.md) explains the whole procedure.
 
 ## Why this exists
 
@@ -55,12 +54,12 @@ What that means for you:
 
 | Repo | Contains | Status |
 | --- | --- | --- |
-| [`android_device_gpd_xdplus`](https://github.com/Keyaku/android_device_gpd_xdplus) | Device tree — board config, product makefiles, HAL manifest, overlays, `rootdir/`, the `patches/` set | Publishing |
-| [`android_vendor_gpd_xdplus`](https://github.com/Keyaku/android_vendor_gpd_xdplus) | Proprietary blob set | Publishing |
-| [`android_kernel_mt8176_common`](https://github.com/Keyaku/android_kernel_mt8176_common) | 3.18 kernel source (GPL) | Public |
-| [`android_twrp_gpd_gpd_en`](https://github.com/Keyaku/android_twrp_gpd_gpd_en) | TWRP recovery tree (GPL) | Public |
+| [`android_device_gpd_xdplus`](https://github.com/Keyaku/android_device_gpd_xdplus/tree/lineage-18.1) | Device tree — board config, product makefiles, HAL manifest, overlays, `rootdir/`, the `patches/` set | `lineage-18.1` |
+| [`android_vendor_gpd_xdplus`](https://github.com/Keyaku/android_vendor_gpd_xdplus/tree/lineage-18.1) | Proprietary blob set, and the script that bakes the vendor image from it | `lineage-18.1` |
+| [`android_kernel_mt8176_common`](https://github.com/Keyaku/android_kernel_mt8176_common/tree/xdplus-los18) | 3.18.79 kernel source (GPL), forked from the published `mt8176_common` BSP | `xdplus-los18` |
+| [`android_device_gpd_xdplus_recovery`](https://github.com/Keyaku/android_device_gpd_xdplus_recovery/tree/android-11) | TWRP 3.7.0_11-0 device tree, built on the `twrp-11` base with this port's kernel | `android-11` |
 
-Only branches for versions actually supported are carried. Today that means **`lineage-18.1`** and nothing else; an empty `lineage-20` branch would just waste your afternoon.
+Only branches for versions actually supported are carried. For the ROM trees that means **`lineage-18.1`** and nothing else; an empty `lineage-20` branch would just waste your afternoon. The recovery tree tracks the OS it services, not TWRP releases, so its branch is named after the Android version.
 
 ## Features
 
@@ -116,7 +115,7 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 
 - **Cellular / SIM.** No modem in the device.
 - **Camera.** No sensor in the device.
-- **An unlocked bootloader.** GPD never provided an unlock path for this model. Everything downstream of that — `fastboot flash`, `fastboot boot`, one-command recovery from a bad kernel, working OTA auto-install — is permanently out of reach.
+- **`fastboot flash` / `fastboot boot`.** GPD never provided an unlock path for this model, and the lock is what refuses those two commands. Everything they would be used for is covered by TWRP and the preloader instead, so this costs convenience rather than capability. OTA **download** works; OTA **auto-install** cannot complete, and the downloaded zip is installed from TWRP.
 - **Widevine L1.** L1 needs a certified, provisioned OEMCrypto path through the TEE, which this device was never issued. Protected HD streaming from services that require L1 will not happen here.
 - **Google Play certification.** Uncertified builds, by construction.
 - **WPA3 / SAE.** Blocked in the closed-source MT6630 driver and firmware, not in the framework.
@@ -126,9 +125,18 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 
 ## Known issues and milestones
 
-> **This section is not filled in yet** — it will be populated at the first public release, against the actual state of the tree at that moment rather than a snapshot that is already stale.
->
-> It will cover, in brief: open bugs and their current state, with the multi-stage work (Vulkan, HDMI output) broken down into what has landed and what is left; and the milestone list — Widevine L3 verification, SELinux enforcing, `/data` encryption, an SP Flash Tool release package, and how far up the LineageOS versions this hardware can be pushed before the 8.1-era blobs make it impossible.
+### Known issues
+
+- **mini-HDMI output is experimental.** Mirroring to an external monitor works — both display pipelines run at 60 Hz on hardware overlays — but the built-in panel does not render correctly while mirroring, so the feature is shipped behind a toggle rather than on by default.
+- **OTA auto-install does not complete.** The Updater downloads and verifies a build, then stops; install the downloaded zip from TWRP.
+- **WPA3 / SAE will not connect.** The limit is in the closed-source MT6630 driver and firmware.
+- **SELinux runs permissive.** Making it enforcing needs a policy this port has not written yet.
+- **`/data` is not encrypted.** The stock 8.1-era crypto path was not carried over.
+- **Widevine is brought up but only L3 is expected to work**, and L3 has not been verified against a real DRM service.
+
+### Milestones
+
+Roughly in the order they are likely to be attempted: verify Widevine L3 against a real service; finish the HDMI panel-side fix so mirroring can ship on by default; SELinux enforcing; `/data` encryption; a first-install package that goes straight onto a stock device; and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged.
 
 One quirk is worth stating up front, because it looks like a bug and is not:
 
@@ -181,6 +189,8 @@ Two things that will waste your day if you skip them:
 - `breakfast xdplus` does **not** fetch anything here. LineageOS's roomservice hardcodes `LineageOS/<repo>` as the source of every `lineage.dependencies` entry (`vendor/lineage/build/tools/roomservice.py`), and these repos are not under that org — hence the local manifest above, which is also what puts the kernel at the path `TARGET_KERNEL_SOURCE` expects.
 - The kernel is built in-tree by `mka bacon`, from `mt8176_defconfig` plus `arch/arm64/configs/xdplus_kernel.frag`. Without that fragment the DDK version drops to 1.7 against 1.9 blobs and SurfaceFlinger loops forever on `PVRSRVConnectKM: Incompatible driver` — and `kernel.mk` only warns about a missing fragment, so verify the deltas landed in `out/target/product/xdplus/obj/KERNEL_OBJ/.config` before flashing.
 - `mka bacon` writes the **boot** partition too. Every system flash silently replaces the running kernel.
+
+TWRP is built separately, from its own tree on the `twrp-11` minimal manifest rather than in this tree — see [`android_device_gpd_xdplus_recovery`](https://github.com/Keyaku/android_device_gpd_xdplus_recovery/tree/android-11). It takes the `Image.gz-dtb` this build produces, so build the ROM first.
 
 ## Contributing
 

@@ -1,6 +1,6 @@
 # Installing LineageOS 18.1 on the GPD XD+
 
-Read the whole of [Before you start](#before-you-start) before touching anything. The XD+ ships with a **locked bootloader, and this port assumes it stays locked**, which changes what "flashing a ROM" means on this device — several habits from other Android devices will brick you here.
+Read the whole of [Before you start](#before-you-start) before touching anything. The XD+ ships with a **locked bootloader, and this port assumes it stays locked** — which changes the mechanics of flashing rather than making it risky. Two paths cover every situation, and the second one reaches the hardware even when nothing else does.
 
 - [Before you start](#before-you-start)
 - [Which path do I need?](#which-path-do-i-need)
@@ -13,7 +13,7 @@ Read the whole of [Before you start](#before-you-start) before touching anything
 
 ## Before you start
 
-**The bootloader is locked, and everything here assumes it stays that way.** Unlocking may well be technically possible on this hardware; it has not been attempted, and neither has re-locking, because the downside of getting it wrong is an unusable device. Nothing below needs an unlocked bootloader. Consequences you have to internalise:
+**The bootloader is locked, and everything here assumes it stays that way.** On this MediaTek SoC the lock is far less consequential than on a modern device: the boot ROM download mode is open, so [Path B](#path-b--the-preloader-first-time-and-unbrick) can read and write any partition over USB no matter what state the device is in. Unlocking would buy nothing that Path B does not already give, and has not been attempted. What the lock does change:
 
 - **`fastboot flash` does not work.** It is refused. Every partition write happens either from inside TWRP or over the MediaTek preloader (Path B).
 - `fastboot oem reboot-recovery` **does** work, and is how the scripts reach TWRP.
