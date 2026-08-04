@@ -165,6 +165,16 @@ The table is written to offset 0 of the user area, which is the `pgpt` partition
 
 **One thing you must do that the tooling cannot do for you:** the original instructions had you read your *own* `nvram` and `nvdata` off the device and substitute them into the package before flashing, because "Format All" erases them and the package's copies belong to somebody else's device. `backup` is the equivalent step here — and afterwards, restore your own with `restore ~/xdplus-backup nvram` and `restore ~/xdplus-backup nvdata`. ⚠️ **Flashing a stranger's `nvram`/`nvdata` gives you their MAC addresses and their radio calibration.**
 
+### ⚠️ Known limitation: `--repartition` is documented but untested
+
+Everything else on this page has been run on real hardware. **`--repartition` has not**, and it is the one step a first-time install onto a stock device needs.
+
+What that means in practice: the code exists, the partition-table blob it writes has been parsed and verified byte-exact against a running device, the target offset is the `pgpt` partition and provably not the preloader, and the operation refuses a blob without a valid GPT signature. What has *not* happened is anyone running it end to end and watching a stock device come back. It stays in the tree, documented and gated, rather than being quietly removed or quietly presented as ready.
+
+**Why it is unlikely to be tested soon**: testing it honestly requires a device that is still on the stock layout, and the development device was repartitioned years ago by the original SP Flash Tool install. Verifying it would mean deliberately destroying a working device's layout to rebuild it. If you have a stock XD+ and are willing to try, that report would be genuinely valuable — back up first, and expect to fall back to SP Flash Tool if it goes wrong.
+
+**If you would rather not be the first**: use the previous unofficial build's SP Flash Tool package once, exactly as its README describes ("Format All + Download", after reading back your own `nvram`/`nvdata`). That establishes the layout and puts TWRP on. Everything after that — this ROM, updates, recovery from a bad flash — is covered by tested paths.
+
 ### Status of each operation
 
 | Operation | Writes? | Verified on hardware |
