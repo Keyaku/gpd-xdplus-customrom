@@ -69,4 +69,8 @@ Those last two enable `xdnotify()`, defined in `env.sh` and called by `build.sh`
 
 `env.sh` exports `xdkernel_banner <image>`, which prints the `Linux version …` banner of any kernel image — an `Image.gz-dtb`, an `out/.../kernel`, or a whole `boot.img`. Useful on its own for identifying a pile of backup boot images.
 
+| `ota_publish.sh` | Publish a built zip: `--github --dry-run` first, then `--github --push`. Uploads the zip as a release asset, merges the entry into `ota/xdplus.json` and commits it. ⚠️ **Refuses anything but a `user` build** — it reads the variant out of the zip's own `META-INF/com/android/metadata`, not out of the staging tree. |
+
+`ota_publish.sh` writes the manifest the device actually fetches, the one named by `lineage.updater.uri` in the device tree's `system.prop`. Publishing to a different repo, branch or path is silent — no device will ever look there. The zip must also be signed with the key whose certificate is in the running device's `/system/etc/security/otacerts.zip`, or the Updater downloads it and then refuses to install it.
+
 `inject_vendor.sh` needs a vendor image and the release signing keys. Neither is in this repo, and the keys never will be — point it at yours with `XDVENDOR_IMG` and keep `device/gpd/xdplus/keys/` gitignored.
