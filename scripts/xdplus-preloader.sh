@@ -15,8 +15,10 @@
 # Options:
 #   --board-check    also read `lk` and identify the board revision (identify)
 #   --yes            skip confirmation prompts
-#   --repartition    install onto a STOCK layout, rewriting the partition table.
-#                    ⚠️ DANGEROUS AND UNVERIFIED — read the warning below.
+#   --repartition    install onto a STOCK layout, rewriting the partition table
+#                    from the SP Flash Tool package's `MBR` blob.
+#                    ⚠️ DESTROYS ALL DATA AND IS UNVERIFIED — read the warning below.
+#   --mbr <file>     where that blob is, if not <dir>/MBR
 #
 # ── HOW THIS DEVICE DIFFERS FROM EVERY OTHER ANDROID DEVICE ───────────────────
 #
@@ -246,18 +248,42 @@ cmd_install() {
 		|| die "boot.img has no ANDROID! magic — refusing"; }
 
 	if [ "${REPARTITION:-0}" = "1" ]; then
+		local mbr="${MBR_FILE:-$dir/MBR}"
+		[ -f "$mbr" ] || die "--repartition needs the partition-table blob.
+It is the file named 'MBR' inside the SP Flash Tool package for this ROM (17408
+bytes). Put it in $dir, or pass --mbr <file>."
+		# Sanity-check the blob before letting it near the device: it must be a
+		# real GPT, and it must describe THIS ROM's layout rather than the stock
+		# one. Writing a table that does not match the images is how you produce
+		# a device that flashes cleanly and then boots to nothing.
+		dd if="$mbr" bs=1 skip=512 count=8 status=none | grep -q 'EFI PART' \
+			|| die "$mbr is not a GPT image (no 'EFI PART' signature at offset 512)"
 		echo
 		warn "──────────────────────────────────────────────────────────────────"
-		warn " --repartition rewrites the PARTITION TABLE."
-		warn " Everything on the device is destroyed, including the per-unit"
-		warn " calibration in nvram/nvdata if you have not backed it up."
-		warn " This path is UNVERIFIED: no one has yet run it end to end."
-		warn " Run 'backup' first. Seriously."
+		warn " --repartition REWRITES THE PARTITION TABLE."
+		warn " Every partition is redefined and everything on the device is lost,"
+		warn " including the per-unit calibration in nvram/nvdata/proinfo and the"
+		warn " protect partitions, which NO DOWNLOAD CAN REPLACE."
+		warn ""
+		warn " ⚠️ THIS PATH HAS NOT BEEN VERIFIED END TO END."
+		warn " It writes the table to the start of the user area, which covers"
+		warn " 'pgpt' only. It does NOT touch the preloader, which lives in the"
+		warn " eMMC boot area — so a bad table is recoverable from here."
+		warn ""
+		warn " Run 'backup' FIRST and check the md5sums came out. Seriously."
 		warn "──────────────────────────────────────────────────────────────────"
-		die "--repartition is not implemented yet — see docs/INSTALL.md.
-The stock layout has no vendor partition and its boot/recovery are too small for
-this ROM, so installing onto a stock device needs a new GPT written first. That
-step is deliberately absent until it has been tested on a device we can recover."
+		confirm "Rewrite the partition table from $mbr and destroy all data?"
+		step "Writing the partition table"
+		arm_warm_reboot
+		# Offset 0 of the user area = the 'pgpt' partition in MediaTek's scatter
+		# (0x0, length 0x80000). Writing here replaces MBR + primary GPT.
+		mtk wo 0x0 "$mbr" 2>&1 | tr '\r' '\n' | grep -aiE "Writing|Error|Couldn't|Done" || true
+		echo
+		warn "Table written. The device must be POWER-CYCLED before the new layout"
+		warn "is visible — unplug, hold power, then run 'identify' to confirm it"
+		warn "reports XDPLUS, and only then run 'install' again without --repartition."
+		park_notice
+		return 0
 	fi
 
 	confirm "Write$have to the device?"
@@ -272,13 +298,14 @@ step is deliberately absent until it has been tested on a device we can recover.
 	park_notice
 }
 
-ASSUME_YES=0; BOARD_CHECK=0; REPARTITION=0
+ASSUME_YES=0; BOARD_CHECK=0; REPARTITION=0; MBR_FILE=""
 ARGS=()
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--yes|-y)      ASSUME_YES=1; shift;;
 		--board-check) BOARD_CHECK=1; shift;;
 		--repartition) REPARTITION=1; shift;;
+		--mbr)         MBR_FILE="$2"; shift 2;;
 		-h|--help)     sed -n '2,60p' "$0"; exit 0;;
 		-*)            die "unknown option: $1";;
 		*)             ARGS+=("$1"); shift;;

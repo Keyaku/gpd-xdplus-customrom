@@ -149,7 +149,21 @@ A stock XD+ cannot receive this ROM as-is. The layouts differ from `boot` onward
 
 So a first-time install has to write a new partition table, which destroys everything on the device — including the calibration partitions if they are not backed up first.
 
-**`--repartition` is not implemented yet.** It refuses with an explanation rather than doing something unverified: writing a GPT is the one operation here whose failure is not obviously recoverable, and it will not ship until it has been tested end to end. Until then, a stock device still needs the previous unofficial build's SP Flash Tool package once, to establish the layout and put TWRP on; after that this script and [Path A](#path-a--install-via-twrp-normal-case) cover everything.
+This is exactly what SP Flash Tool's **"Format All + Download"** step did in the original install instructions for this ROM — that mode, and not `Download Only`, is what rewrote the table. The table itself comes from the **`MBR`** file in that package: a 17,408-byte blob holding the MBR plus the primary GPT. It has been checked against a live device and describes all 25 partitions exactly, `recovery` at 96 MB included. ⚠️ The package's scatter *text* file disagrees — it declares `recovery` as 64 MB — and it is the **blob** that is authoritative.
+
+```sh
+./scripts/xdplus-preloader.sh backup ~/xdplus-backup        # FIRST. always.
+./scripts/xdplus-preloader.sh install <dir> --repartition --mbr /path/to/MBR
+# power-cycle, then:
+./scripts/xdplus-preloader.sh identify                       # must now say XDPLUS
+./scripts/xdplus-preloader.sh install <dir>
+```
+
+The table is written to offset 0 of the user area, which is the `pgpt` partition. **It does not touch the preloader**, which lives in the eMMC boot area — so a bad table is recoverable by writing a good one from here.
+
+⚠️ **This path has not been run end to end.** It refuses a blob without a valid `EFI PART` signature, requires a typed confirmation, and destroys everything on the device including the calibration partitions. Back up first and verify the md5sums came out.
+
+**One thing you must do that the tooling cannot do for you:** the original instructions had you read your *own* `nvram` and `nvdata` off the device and substitute them into the package before flashing, because "Format All" erases them and the package's copies belong to somebody else's device. `backup` is the equivalent step here — and afterwards, restore your own with `restore ~/xdplus-backup nvram` and `restore ~/xdplus-backup nvdata`. ⚠️ **Flashing a stranger's `nvram`/`nvdata` gives you their MAC addresses and their radio calibration.**
 
 ### Status of each operation
 
@@ -158,7 +172,7 @@ So a first-time install has to write a new partition table, which destroys every
 | `identify` | no | ✅ yes |
 | `backup` | no | ✅ reads are exact — a 96 MB partition read back md5-identical to a reference `dd` |
 | `install` / `restore` | yes | ⚠️ **not yet** — the write path is implemented but has not been run end to end |
-| `install --repartition` | yes | ❌ not implemented |
+| `install --repartition` | yes | ⚠️ **not yet** — implemented, blob validated against a live device, never executed |
 
 ## After the first boot
 
