@@ -73,13 +73,13 @@ Only branches for versions actually supported are carried. For the ROM trees tha
 
 - **Hardware GPU** — PowerVR GX6250 on the DDK 1.9 driver stack.
 - **OpenGL ES** works throughout the UI and in apps.
-- **Vulkan works in games** (needs more testing), via a compatibility shim that works around the driver's crashes. RetroArch and its cores run on the Vulkan renderer.
+- **Vulkan (1.0) works in games** (needs more testing), via a compatibility shim that works around the driver's crashes. RetroArch and its cores run on the Vulkan renderer. Flutter apps requiring Vulkan 1.1 are funneled through backwards compatibility extensions; they'll work, but don't expect full Vulkan 1.1 support.
 - **Rotation flat-pose handling** — the accelerometer sits in the clamshell base, so resting the device on a table reads as "flat" and stock Android freezes the last orientation. A configurable rotation is proposed instead.
 
 ### Audio
 
 - **Microphone capture fixed.** Faults in the Android 8.1-era vendor audio HAL were worked around; the stock recorder and third-party apps record real audio.
-- **Headset jack plumbed.** Polling the driver's own sysfs state restores routing, speaker mute, headset mic and the status-bar icon.
+- **Headset jack plumbed.** Polling the driver's own sysfs state restores routing, speaker mute and the status-bar icon. _Headset mic can be detected_, but is deliberately ignored due to hardware limitations (needs more research into the audio stack).
 - Hardware video codecs, and low-latency audio suitable for **Moonlight** game streaming.
 
 ### Input
@@ -91,8 +91,8 @@ Only branches for versions actually supported are carried. For the ROM trees tha
 
 - **2.4 GHz 802.11n & 5 GHz 802.11ac**.
 - **Power-save handled by screen state.** The MT6630 driver mishandles 802.11 power-save and access points kick the device under sustained load, so the radio is kept awake while the screen is on and allowed back into power-save when it is off. Pinning it off unconditionally was the first fix and cost real standby battery; making it screen-conditional keeps the link stable in use without paying for it idle.
-- **Bluetooth 4.1**, with pairing and A2DP audio. The HAL writes each HCI packet as a two-part `writev()`, and the chip's kernel driver had no `write_iter` handler — so every packet reached the MT6630 as two separate transport frames and the firmware parked itself. Adding the handler fixed it.
-- **Both radios patched, and they share one chip without fighting over it.** Wi-Fi and Bluetooth are each fixed in their own right and run together; neither takes the other down. Wi-Fi additionally keeps a recovery path that restarts the interface rather than parking it off, which stock Android does — a safety net rather than a symptom.
+- **Bluetooth 4.1**, with pairing and A2DP audio.
+- **Both radios patched**: Wi-Fi and Bluetooth are each fixed in their own right and can run together. _Yes, I know: insanity!!_
 - The only Wi-Fi gap is **WPA3/SAE**, below.
 
 ### Security and system
@@ -101,7 +101,7 @@ Only branches for versions actually supported are carried. For the ROM trees tha
 - **Widevine DRM HAL** brought up on the 8.1-era blobs, working around a symbol rename between Android 8 and 11 that crash-looped the service.
 - Init hardened against pre-Android-9 vendor behaviour — without those guards init segfaults on boot, `logcat` is dead, and netd starts with no network at all.
 - An in-Settings **"GPD XD+"** menu exposing device-specific toggles at runtime.
-- Boot time cut to ~55 s, with more still on the table.
+- Boot time cut to ~30 s — which honestly surprises me given the hardware.
 
 ## What was removed from stock LineageOS
 
@@ -118,7 +118,6 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 - **`fastboot flash` / `fastboot boot`.** GPD never provided an unlock path for this model, and the lock is what refuses those two commands. Everything they would be used for is covered by TWRP and the preloader instead, so this costs convenience rather than capability. OTA **download** works; OTA **auto-install** cannot complete, and the downloaded zip is installed from TWRP.
 - **Widevine L1.** L1 needs a certified, provisioned OEMCrypto path through the TEE, which this device was never issued. Protected HD streaming from services that require L1 will not happen here.
 - **Google Play certification.** Uncertified builds, by construction.
-- **WPA3 / SAE.** Blocked in the closed-source MT6630 driver and firmware, not in the framework.
 - **6 GHz Wi-Fi.** No 6E radio, despite what "hardware info" apps claim.
 - **A from-source `/vendor` image.** The device uses the legacy system-as-root layout where `/vendor` is a symlink into the system image, and building one natively creates a mount loop. Vendor stays a partition-based blob set, injected post-build.
 - **Anything requiring drivers that don't exist.** The GPU, Wi-Fi and video blobs are Android 8.1-era binaries with no source, and there will never be newer ones. That is the ceiling every future Android version has to be dragged over.
@@ -136,7 +135,7 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 
 ### Milestones
 
-Roughly in the order they are likely to be attempted: verify Widevine L3 against a real service; finish the HDMI panel-side fix so mirroring can ship on by default; SELinux enforcing; `/data` encryption; a first-install package that goes straight onto a stock device; and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged.
+Roughly in the order they are likely to be attempted: finish the HDMI panel-side fix so mirroring can ship on by default; SELinux enforcing; `/data` encryption; and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged.
 
 One quirk is worth stating up front, because it looks like a bug and is not:
 
@@ -152,7 +151,7 @@ Short version, on a device that already has TWRP:
 
 That routes the device into recovery, verifies the transfer, installs, clears the boot control block and reboots.
 
-Long version — and you should read it, because the locked bootloader makes this device unlike whatever you flashed last — is **[`docs/INSTALL.md`](docs/INSTALL.md)**. It covers TWRP installs, SP Flash Tool for first-time setup and unbricking, keeping Magisk across updates (the zip overwrites your kernel — this catches everyone), and troubleshooting.
+Long version — and you should read it, because the locked bootloader makes this device unlike whatever you flashed last — is **[`docs/INSTALL.md`](docs/INSTALL.md)**. It covers semi-automated installs, TWRP installs, SP Flash Tool for first-time setup and unbricking, keeping Magisk across updates (the zip overwrites your kernel), and troubleshooting.
 
 Releases are published under [Releases](https://github.com/Keyaku/gpd-xdplus-customrom/releases).
 
@@ -216,6 +215,6 @@ To the people who published their work, which is the only reason any of this was
 
 A note rather than a credit, because accuracy matters here.
 
-The XD+ had an earlier unofficial LineageOS 18.1, and the GPL trees published alongside the older 15.1-era work — the `mt8176_common` kernel and the TWRP tree — were real and useful, and this port builds on both. They are forked with history and attribution intact, as the GPL asks.
+The XD+ had an earlier unofficial LineageOS 18.1, and the GPL trees published alongside the older Android 8.1-era work — the `mt8176_common` kernel and the TWRP tree — were real and useful, and this port builds on both. They are forked with history and attribution intact, as the GPL asks.
 
-The 18.1 build itself is a different matter. It was distributed as binaries and abandoned at Beta 19, and **its kernel sources were never published** — which the GPL does not permit for a binary you distribute. The practical result is that everyone running it was stuck: no source, no way to fix a bug, no way to continue the work. That is the gap this project exists to close, and it is why the kernel here is built from public source and why every framework change is carried as a readable patch. The published work is acknowledged. The unpublished part is not something to thank anyone for.
+The 15.1-18.1 builds, locked behind a paywall, are a different matter. They were distributed as binaries and abandoned at Beta 19, and **the kernel sources were never published** — which the GPL does not permit for a binary you distribute. The practical result is that everyone running it was stuck: no source, no way to fix a bug, no way to continue the work. That is the gap this project exists to close, and it is why the kernel here is built from public source and why every framework change is carried as a readable patch. The published work is acknowledged. The unpublished part is not something to thank anyone for.
