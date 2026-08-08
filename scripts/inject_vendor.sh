@@ -51,7 +51,12 @@ ZIP="$XDZIP"
 # a SIM-less device with no public.libraries entry for libOpenCL.so), taking the
 # tree from 141 MB to 73 MB. Pointing this back at an older image silently
 # reinstates ~68 MB of dead blobs.
-VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-slim-20260804.img}"
+# 20260808 adds the SELinux labels for the ten paths the OEM image left with no
+# security.selinux xattr at all. Same contents and same fs_config as 20260804 --
+# labels are the only difference. Without them init cannot exec those binaries
+# once SELinux goes enforcing, the graphics composer and allocator among them, and
+# even under permissive they run with no domain transition.
+VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-labelled-20260808.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in
