@@ -115,7 +115,7 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 
 - **Cellular / SIM.** No modem in the device.
 - **Camera.** No sensor in the device.
-- **`fastboot flash` / `fastboot boot`.** GPD never provided an unlock path for this model, and the lock is what refuses those two commands. Everything they would be used for is covered by TWRP and the preloader instead, so this costs convenience rather than capability. OTA **download** works; OTA **auto-install** cannot complete, and the downloaded zip is installed from TWRP.
+- **`fastboot flash` / `fastboot boot`.** GPD never provided an unlock path for this model, and the lock is what refuses those two commands. Everything they would be used for is covered by TWRP and the preloader instead, so this costs convenience rather than capability.
 - **Widevine L1.** L1 needs a certified, provisioned OEMCrypto path through the TEE, which this device was never issued. Protected HD streaming from services that require L1 will not happen here.
 - **Google Play certification.** Uncertified builds, by construction.
 - **6 GHz Wi-Fi.** No 6E radio, despite what "hardware info" apps claim.
@@ -127,15 +127,15 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 ### Known issues
 
 - **mini-HDMI output is experimental.** Mirroring to an external monitor works — both display pipelines run at 60 Hz on hardware overlays — but the built-in panel does not render correctly while mirroring, so the feature is shipped behind a toggle rather than on by default.
-- **OTA auto-install does not complete.** The Updater downloads and verifies a build, then stops; install the downloaded zip from TWRP.
-- **WPA3 / SAE will not connect.** The limit is in the closed-source MT6630 driver and firmware.
+- **OTA auto-install is unverified.** The Updater downloads and verifies a build; the non-A/B install path it hands to recovery has been traced in source but never exercised on hardware. Install the downloaded zip from TWRP until that is confirmed. Failure is harmless — recovery clears the boot control block at startup, so there is no loop.
+- **WPA3 / SAE will not connect.** The limit is in the closed-source MT6630 driver and firmware, not in the framework.
 - **SELinux runs permissive.** Making it enforcing needs a policy this port has not written yet.
 - **`/data` is not encrypted.** The stock 8.1-era crypto path was not carried over.
 - **Widevine is brought up but only L3 is expected to work**, and L3 has not been verified against a real DRM service.
 
 ### Milestones
 
-Roughly in the order they are likely to be attempted: finish the HDMI panel-side fix so mirroring can ship on by default; SELinux enforcing; `/data` encryption; and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged.
+Roughly in the order they are likely to be attempted: verify OTA auto-install on the next release; finish the HDMI panel-side fix so mirroring can ship on by default; SELinux enforcing; `/data` encryption; and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged.
 
 One quirk is worth stating up front, because it looks like a bug and is not:
 
