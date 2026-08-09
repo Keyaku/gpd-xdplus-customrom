@@ -14,6 +14,7 @@ This repository is the umbrella: it holds the documentation, the build and insta
 - [What was removed from stock LineageOS](#what-was-removed-from-stock-lineageos)
 - [What this will never have](#what-this-will-never-have)
 - [Known issues and milestones](#known-issues-and-milestones)
+- [Changelog](#changelog)
 - [Installing](#installing)
 - [Building](#building)
 - [Contributing](#contributing)
@@ -129,17 +130,23 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 - **mini-HDMI output is experimental.** Mirroring to an external monitor works — both display pipelines run at 60 Hz on hardware overlays — but the built-in panel does not render correctly while mirroring, so the feature is shipped behind a toggle rather than on by default.
 - **OTA auto-install is unverified.** The Updater downloads and verifies a build; the non-A/B install path it hands to recovery has been traced in source but never exercised on hardware. Install the downloaded zip from TWRP until that is confirmed. Failure is harmless — recovery clears the boot control block at startup, so there is no loop.
 - **WPA3 / SAE will not connect.** The limit is in the closed-source MT6630 driver and firmware, not in the framework.
-- **SELinux runs permissive.** Making it enforcing needs a policy this port has not written yet.
+- **SELinux runs permissive.** The device policy exists now and enforcing has been verified with the whole feature set working, but that is **not in this release** — see [the unreleased changelog](docs/changelog/unreleased.md) — and enforcing is not the default even there.
 - **`/data` is not encrypted.** The stock 8.1-era crypto path was not carried over.
 - **Widevine is brought up but only L3 is expected to work**, and L3 has not been verified against a real DRM service.
 
 ### Milestones
 
-Roughly in the order they are likely to be attempted: verify OTA auto-install on the next release; finish the HDMI panel-side fix so mirroring can ship on by default; SELinux enforcing; `/data` encryption; and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged.
+Roughly in the order they are likely to be attempted: verify OTA auto-install on the next release; finish the HDMI panel-side fix so mirroring can ship on by default; make SELinux enforcing the default (the policy itself is written — see [the unreleased changelog](docs/changelog/unreleased.md)); `/data` encryption; and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged.
 
 One quirk is worth stating up front, because it looks like a bug and is not:
 
 - **The "Gamepad Mapper" button does nothing, by choice.** On stock it opened GPD's own key-remapping overlay, which is not part of this port, so the button has no owner here. Rather than give it an unrelated job, it is left inert for this release: the key layout maps it to an otherwise-unused keycode so that a future feature can claim it cleanly. Giving it a real purpose is planned, and it is the only hardware control on the device that currently has no effect.
+
+## Changelog
+
+[`docs/changelog/`](docs/changelog/) — one file per release, newest first.
+
+⚠️ **The latest download is not the latest work.** The current release is [20260804](docs/changelog/20260804.md); everything finished since then is listed under [Unreleased](docs/changelog/unreleased.md) and ships in the next release. The headline there is SELinux: the port now has a device policy and survives enforcing mode with graphics, codecs, Vulkan and the Settings menu all working. It still ships permissive by default, and the sources for it are not pushed yet.
 
 ## Installing
 

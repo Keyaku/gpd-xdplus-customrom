@@ -56,7 +56,15 @@ ZIP="$XDZIP"
 # labels are the only difference. Without them init cannot exec those binaries
 # once SELinux goes enforcing, the graphics composer and allocator among them, and
 # even under permissive they run with no domain transition.
-VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-labelled-20260808.img}"
+# 20260809 adds two things and nothing else (build_vendor_image.sh --verify against
+# the 20260808 image reports exactly these): an exec label for /vendor/bin/autokd,
+# so the OEM's calibration daemon lands in its own domain instead of running as
+# init; and this port's own SELinux rules, appended to the OEM's nonplat_sepolicy.cil
+# when the image is baked. Those rules are what makes the codecs work under
+# enforcement -- without them screen recording fails outright and video playback
+# stalls in the decoder -- and they cannot live in the device tree, because every
+# type they name is declared in that vendor policy and does not exist at build time.
+VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-selinux-addendum-20260809.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in

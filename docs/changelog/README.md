@@ -1,0 +1,10 @@
+# Changelog
+
+One file per release, newest first. Each file reads top-to-bottom as newest-first too, so a point release is prepended to the file it belongs to rather than starting a new one.
+
+| Version | Date | Notes |
+|---|---|---|
+| [Unreleased](unreleased.md) | — | Work that is done and verified on hardware but **not published yet**. It ships in the next release. |
+| [20260804](20260804.md) | 2026-08-04 | First public release. |
+
+The version string is the build date, which is also the id of the [GitHub release](https://github.com/Keyaku/gpd-xdplus-customrom/releases) and the `ro.lineage.version` the device reports.
