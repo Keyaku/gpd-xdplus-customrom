@@ -24,7 +24,7 @@ if [ "${USE_CCACHE:-1}" != "0" ] && command -v ccache >/dev/null 2>&1; then
 	export USE_CCACHE=1
 	export CCACHE_EXEC="${CCACHE_EXEC:-$(command -v ccache)}"
 fi
-# Keep the builder's local account out of the shipped image (§93). Three separate
+# Keep the builder's local account out of the shipped image. Three separate
 # leaks, all defaulted rather than forced: BUILD_NUMBER otherwise falls back to
 # eng.$USER.$(timestamp) in ro.build.fingerprint, and soong fills ro.build.user /
 # ro.build.host from the invoking account and machine name unless already exported

@@ -4,9 +4,10 @@
 # WHY THIS IS A SCRIPT AND NOT A BUILD FLAG: this device is legacy system-as-root,
 # where /vendor lives inside the system image. BOARD_PREBUILT_VENDORIMAGE requires
 # TARGET_COPY_OUT_VENDOR=vendor, which makes system/vendor a symlink -> /vendor
-# (i.e. /vendor -> /vendor, a mount loop -> fastboot bounce). PORTING_LOG §46.
+# (i.e. /vendor -> /vendor, a mount loop -> fastboot bounce; the device lands in
+# fastboot instead of booting).
 # So the build CANNOT emit vendor natively; we inject it post-bacon instead —
-# the proven §42 recipe, automated.
+# the same recipe that was proven by hand, automated.
 #
 # Injects VIMG into the zip as vendor.img + adds a raw updater-script write to the
 # vendor partition (same mechanism as boot.img), then re-signs whole-file with
@@ -28,7 +29,7 @@ ZIP="$XDZIP"
 # two bakes are byte-identical.
 #
 # Contents, all deliberate, and all reproduced by the bake: camera stripped (the
-# device has none); §60/§72 acqfd-patched hwcomposer (stock aborts on an unclosed
+# device has none); acqfd-patched hwcomposer (stock aborts on an unclosed
 # acquire fd); mic route fix in mixer_paths.xml; and a vendor build.prop whose
 # fingerprint/date/security_patch read GPD/xdplus rather than ALLDOCUBE/U1005E,
 # with ro.vendor.build.fingerprint pinned to a fixed release id instead of a build
@@ -64,7 +65,22 @@ ZIP="$XDZIP"
 # enforcement -- without them screen recording fails outright and video playback
 # stalls in the decoder -- and they cannot live in the device tree, because every
 # type they name is declared in that vendor policy and does not exist at build time.
-VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-selinux-addendum-20260809.img}"
+# 20260809-fbe adds ONE line and nothing else: the /data entry in
+# etc/fstab.mt8173 gains fileencryption=aes-256-xts:aes-256-cts:v1, turning on
+# file-based encryption. Everything else is identical to the image above.
+#
+# !! THIS IMAGE IS NOT SAFE TO FLASH ONTO AN EXISTING INSTALL BY ITSELF !!
+# FBE cannot be enabled in place. Flashing it over a device whose /data is
+# already plaintext makes vold's init_user0 step fail, and a failed init_user0
+# reboots the device into recovery -- repeatedly. Converting an existing install
+# means wiping /data, which destroys every app and setting on it. It also needs a
+# kernel carrying the ext4 encrypted-directory lookup fixes; an older kernel with
+# this fstab fails the same way.
+#
+# So: use this image for a fresh install or a deliberate wipe-and-convert, and
+# point XDVENDOR_IMG at vendor-selinux-addendum-20260809.img for an in-place
+# vendor refresh on a plaintext /data.
+VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-fbe-20260809.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -103,7 +119,7 @@ if grep -q 'by-name/vendor' "$US"; then
 	echo "note: updater-script already writes vendor; leaving script as-is"
 else
 	# Insert the vendor write right after the system restore step (backuptool.sh
-	# restore) so it lands before boot.img, matching the CAMFREE §42 ordering.
+	# restore) so it lands before boot.img, matching the CAMFREE ordering.
 	LINE='ui_print("Writing vendor image...");'
 	LINE="$LINE"$'\n''package_extract_file("vendor.img", "'"$XDBYNAME_TWRP"'/vendor");'
 	awk -v ins="$LINE" '
