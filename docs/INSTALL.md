@@ -78,6 +78,14 @@ This is the single most common way people lose root here. The build's `boot` ima
 
 `/vendor` on this device is a real partition (`mmcblk0p23`) holding camera-stripped, prebuilt vendor blobs — the standard ROM zip does **not** touch it. If a release is published as a `-CAMFREE` zip, that variant additionally writes `vendor` and you install it exactly the same way. Install the plain zip on a device whose vendor partition is already correct; install the `-CAMFREE` zip when coming from stock or when a release note says the vendor set changed.
 
+### ⚠️ When a release ships a vendor zip, install it too
+
+Some releases carry a **second zip that writes the vendor partition**, listed on the release page next to the build. When one is present, **flash both in the same TWRP session** — the build first, then the vendor zip.
+
+This matters because the two halves are not independent. Parts of a feature can live in the kernel and the system image while the rest lives in vendor: the landscape display is the current example, where touch orientation and the accelerometer mount ship in the build and the display rotation itself ships in vendor. **Taking only the build leaves the device worse off than not updating** — landscape input against a portrait display, so taps land in the wrong place.
+
+⚠️ **The Updater cannot do this for you.** It installs exactly one zip, so a release with a vendor zip is not fully applied by an in-place update. If you updated through the Updater, flash the vendor zip from TWRP afterwards.
+
 ## Path B — the preloader (first-time and unbrick)
 
 Below Android, below TWRP and below the bootloader, the MT8176 boot ROM answers on **every** power-up, for a fraction of a second, whether or not the device can boot, show anything or reach adb. That window is how a stock device gets TWRP, and how a device showing nothing at all comes back.
@@ -200,9 +208,13 @@ Wi-Fi re-provisions itself on first connect; nothing to do there.
 
 ## Updating later
 
-The Updater app will find and download builds, verify them, and then stop: it cannot reboot-and-apply on a locked bootloader. Take the downloaded zip from `/data/lineageos_updates/` and install it via [Path A](#path-a--install-via-twrp-normal-case). No wipe is needed between builds of the same LineageOS version.
+The Updater app finds, downloads and verifies builds, then installs one on its own: the device reboots into recovery, applies the update and reboots back into the system with nothing to tap. No wipe is needed between builds of the same LineageOS version.
 
-Remember the boot partition rule on every single update, not just the first: if you are rooted, re-write your Magisk boot.img afterwards.
+⚠️ **Not on [20260804](changelog/20260804.md), the currently published build.** There the hand-off to recovery is ignored — the device reboots into recovery, waits at the menu, and leaves behind a note that keeps sending it back to recovery on later boots. Install the downloaded zip from `/data/lineageos_updates/` by hand via [Path A](#path-a--install-via-twrp-normal-case), and see the README's known issues for the one command that clears that note. Both problems are fixed in the next release.
+
+⚠️ **An update installs only the build.** If the release also ships a vendor zip, flash it from TWRP afterwards — see [the vendor zip note](#-when-a-release-ships-a-vendor-zip-install-it-too).
+
+Remember the boot partition rule on every single update, not just the first: if you are rooted, re-write your Magisk boot.img afterwards. That applies to an automatic install exactly as it does to a hand-flashed one.
 
 ## Root (Magisk)
 

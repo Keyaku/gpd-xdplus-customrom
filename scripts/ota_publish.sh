@@ -10,7 +10,12 @@
 #   ota_publish.sh --url-base https://example.com/zips [--zip PATH]
 #   ota_publish.sh --url-base ... --merge ota/xdplus.json
 #   ota_publish.sh --github --dry-run          # print what would be published
-#   ota_publish.sh --github [--tag TAG] [--zip PATH] [--push]
+#   ota_publish.sh --github [--tag TAG] [--zip PATH] [--vendor-zip PATH] [--push]
+#
+# --vendor-zip uploads a second asset that writes the vendor partition. It is
+# never added to the manifest: the Updater installs one zip, and a vendor-writing
+# one handed to it would put this port's fstab on devices whose /data is still
+# plaintext. Vendor changes reach a device only by flashing that zip in TWRP.
 #
 # WARNING: --github without --dry-run UPLOADS. Creating a release and its asset
 # is public and awkward to take back, so run --dry-run first, every time.
@@ -29,12 +34,13 @@ GH_REPO_DEFAULT="Keyaku/gpd-xdplus-customrom"
 GH_BRANCH_DEFAULT="main"
 GH_MANIFEST_DEFAULT="ota/xdplus.json"
 
-ZIP="" URLBASE="" MERGE="" DATETIME="" VERSION="18.1" ROMTYPE="unofficial"
+ZIP="" VENDORZIP="" URLBASE="" MERGE="" DATETIME="" VERSION="18.1" ROMTYPE="unofficial"
 GITHUB="" TAG="" PUSH="" ALLOW_USERDEBUG="" DRYRUN=""
 GH_REPO="$GH_REPO_DEFAULT" GH_BRANCH="$GH_BRANCH_DEFAULT" GH_MANIFEST="$GH_MANIFEST_DEFAULT"
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--zip)         ZIP="$2"; shift 2;;
+		--vendor-zip)  VENDORZIP="$2"; shift 2;;
 		--url-base)    URLBASE="${2%/}"; shift 2;;
 		--merge)       MERGE="$2"; shift 2;;
 		--datetime)    DATETIME="$2"; shift 2;;
@@ -54,6 +60,25 @@ done
 
 [ -n "$ZIP" ] || ZIP="$XDZIP"   # env.sh: newest bacon zip by mtime
 [ -f "$ZIP" ] || { echo "ERROR: zip not found: $ZIP" >&2; exit 2; }
+
+# The manifest payload must never write the vendor partition. A vendor-writing
+# zip installed over the Updater puts this port's fstab on a device whose /data
+# is still plaintext, and every one of them fails init_user0 and lands in
+# recovery. The default zip is the newest by mtime, which an inject_vendor.sh
+# run makes the injected one, so this is one mistimed command away.
+if unzip -l "$ZIP" 2>/dev/null | grep -qE ' (vendor\.img|vendor\.new\.dat)'; then
+	echo "ERROR: $ZIP writes the vendor partition; it cannot be the OTA payload." >&2
+	echo "       Publish the bacon zip with --zip, and pass this one to --vendor-zip." >&2
+	exit 4
+fi
+
+if [ -n "$VENDORZIP" ]; then
+	[ -f "$VENDORZIP" ] || { echo "ERROR: vendor zip not found: $VENDORZIP" >&2; exit 2; }
+	[ "$(readlink -f "$VENDORZIP")" != "$(readlink -f "$ZIP")" ] || {
+		echo "ERROR: --vendor-zip is the same file as the payload." >&2; exit 2; }
+	unzip -l "$VENDORZIP" 2>/dev/null | grep -qE ' (vendor\.img|vendor\.new\.dat)' || {
+		echo "ERROR: $VENDORZIP does not write vendor; refusing to publish it as one." >&2; exit 4; }
+fi
 
 FN="$(basename "$ZIP")"
 SIZE="$(stat -c %s "$ZIP")"
@@ -161,6 +186,7 @@ echo "datetime: $DATETIME" >&2
 if [ -n "$DRYRUN" ]; then
 	echo "--- DRY RUN: nothing uploaded, nothing committed ---" >&2
 	echo "would create or reuse release $TAG on $GH_REPO, and upload $FN" >&2
+	[ -n "$VENDORZIP" ] && echo "would also upload $(basename "$VENDORZIP") as a second asset, NOT in the manifest" >&2
 	echo "would commit $GH_MANIFEST in $REPO_DIR${PUSH:+, then push it to $GH_BRANCH}" >&2
 	git -C "$REPO_DIR" checkout -- "$GH_MANIFEST" 2>/dev/null || rm -f "$MERGE"
 	exit 0
@@ -173,11 +199,15 @@ echo "--- publishing to $GH_REPO release $TAG ---" >&2
 if gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
 	echo "release $TAG exists; uploading asset (clobbering any same-named one)" >&2
 else
+	VENDOR_NOTE=""
+	[ -n "$VENDORZIP" ] && VENDOR_NOTE="
+
+⚠️ **This release also carries \`$(basename "$VENDORZIP")\`, which writes the vendor partition.** Flash it in TWRP alongside the build above — an update that takes the system side only leaves the device with landscape input against an unrotated display. It is deliberately not offered by the Updater, which can only install one zip."
 	gh release create "$TAG" --repo "$GH_REPO" \
 		--title "LineageOS 18.1 for the GPD XD+ — $TAG" \
 		--notes "Unofficial LineageOS 18.1 build for the GPD XD+ (\`xdplus\`), \`user\` variant.
 
-Install per [docs/INSTALL.md](https://github.com/$GH_REPO/blob/$GH_BRANCH/docs/INSTALL.md). The zip writes \`boot\` as well as \`system\`, so re-apply Magisk afterwards if you are rooted.
+Install per [docs/INSTALL.md](https://github.com/$GH_REPO/blob/$GH_BRANCH/docs/INSTALL.md). The zip writes \`boot\` as well as \`system\`, so re-apply Magisk afterwards if you are rooted.$VENDOR_NOTE
 
 \`\`\`
 sha256  $SHA
@@ -185,6 +215,10 @@ size    $SIZE bytes
 \`\`\`" >&2
 fi
 gh release upload "$TAG" "$ZIP" --repo "$GH_REPO" --clobber >&2
+if [ -n "$VENDORZIP" ]; then
+	gh release upload "$TAG" "$VENDORZIP" --repo "$GH_REPO" --clobber >&2
+	echo "uploaded $(basename "$VENDORZIP"); it is deliberately absent from the manifest" >&2
+fi
 
 git -C "$REPO_DIR" add "$GH_MANIFEST"
 if git -C "$REPO_DIR" diff --cached --quiet -- "$GH_MANIFEST"; then
