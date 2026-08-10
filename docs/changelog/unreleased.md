@@ -67,4 +67,11 @@ The device comes up landscape now — from the setup wizard onwards, with nothin
 - **Touch follows the rotation.** The digitizer is wired portrait and the input system takes its orientation from the window manager, which no longer knows about the rotation, so the touchscreen driver now reports landscape coordinates directly. Without this, taps land transposed.
 - **Auto-rotate is correct.** The accelerometer is mounted to the panel, so its idea of "upright" moved with the display and every rotation was a quarter turn out. Its mount orientation was corrected to match, and the flat-on-a-table pose returns to landscape rather than portrait.
 
-⚠️ **This arrives with a vendor image, so it reaches clean installs and hand-flashed vendor partitions — not an update over OTA.** An OTA zip carries system and boot only. If you update in place, the touch and sensor changes arrive but the display rotation does not, and the per-user workaround still applies.
+⚠️ **This arrives with a vendor image, so it reaches clean installs and hand-flashed vendor partitions — not an update over OTA.** An OTA zip carries system and boot only. The vendor image is published as a second zip on the release page — flash it too.
+
+## An update refuses to half-install itself
+
+An update carries the system and the kernel, but not the vendor partition, so a feature split across the two could previously arrive halfway — landscape input against a portrait display, for instance, which is worse than not updating at all.
+
+- **The build now checks the vendor partition before it writes anything.** If it is older than the build expects, the install stops with a message telling you to flash the vendor zip first, and nothing on the device has changed. Installing in the wrong order, or skipping the vendor zip, can no longer leave the device in a broken half-state.
+- The same check runs whether you install by hand in recovery or let the Updater do it.

@@ -80,11 +80,13 @@ This is the single most common way people lose root here. The build's `boot` ima
 
 ### ⚠️ When a release ships a vendor zip, install it too
 
-Some releases carry a **second zip that writes the vendor partition**, listed on the release page next to the build. When one is present, **flash both in the same TWRP session** — the build first, then the vendor zip.
+Some releases carry a **second zip that writes the vendor partition**, listed on the release page next to the build. When one is present, **flash both in the same TWRP session** — the vendor zip first, then the build.
+
+⭐ **The build checks for you.** If your vendor partition is older than the build expects, the install stops before writing anything and tells you to flash the vendor zip first. You cannot end up half-updated by installing in the wrong order or by skipping the vendor zip — the worst case is a refused install.
 
 This matters because the two halves are not independent. Parts of a feature can live in the kernel and the system image while the rest lives in vendor: the landscape display is the current example, where touch orientation and the accelerometer mount ship in the build and the display rotation itself ships in vendor. **Taking only the build leaves the device worse off than not updating** — landscape input against a portrait display, so taps land in the wrong place.
 
-⚠️ **The Updater cannot do this for you.** It installs exactly one zip, so a release with a vendor zip is not fully applied by an in-place update. If you updated through the Updater, flash the vendor zip from TWRP afterwards.
+⚠️ **The Updater cannot do this for you.** It installs exactly one zip, so a release with a vendor zip is not fully applied by an in-place update. When the vendor partition is too old the automatic install refuses and the device comes back on the build it was already running — flash the vendor zip from TWRP, then install the update.
 
 ## Path B — the preloader (first-time and unbrick)
 
