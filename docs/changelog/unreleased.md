@@ -48,3 +48,14 @@ The port now has a device policy, and enforcing mode works. **It is still not th
 ## Recovery
 
 - **TWRP no longer stores its own settings and logs on `/data`.** It cannot decrypt `/data`, so writing there was actively harmful once encryption was in play. It uses the microSD card instead. ⚠️ **Keep a card in the device** when using recovery on an encrypted device.
+
+## Landscape by default
+
+The device comes up landscape now — from the setup wizard onwards, with nothing to set by hand.
+
+- **The display itself is rotated**, below the window manager, instead of the rotation being a per-user setting. That is what makes it apply to the setup wizard and survive a wipe: previously a clean install started portrait and needed auto-rotate turned off, a fixed rotation chosen, and a launcher preference edited, every time.
+- **The boot animation is landscape too**, with no change to the animation itself — it draws through the same rotated display.
+- **Touch follows the rotation.** The digitizer is wired portrait and the input system takes its orientation from the window manager, which no longer knows about the rotation, so the touchscreen driver now reports landscape coordinates directly. Without this, taps land transposed.
+- **Auto-rotate is correct.** The accelerometer is mounted to the panel, so its idea of "upright" moved with the display and every rotation was a quarter turn out. Its mount orientation was corrected to match, and the flat-on-a-table pose returns to landscape rather than portrait.
+
+⚠️ **This arrives with a vendor image, so it reaches clean installs and hand-flashed vendor partitions — not an update over OTA.** An OTA zip carries system and boot only. If you update in place, the touch and sensor changes arrive but the display rotation does not, and the per-user workaround still applies.

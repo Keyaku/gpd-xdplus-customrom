@@ -76,6 +76,7 @@ Only branches for versions actually supported are carried. For the ROM trees tha
 - **OpenGL ES** works throughout the UI and in apps.
 - **Vulkan (1.0) works in games** (needs more testing), via a compatibility shim that works around the driver's crashes. RetroArch and its cores run on the Vulkan renderer. Flutter apps requiring Vulkan 1.1 are funneled through backwards compatibility extensions; they'll work, but don't expect full Vulkan 1.1 support.
 - **Rotation flat-pose handling** — the accelerometer sits in the clamshell base, so resting the device on a table reads as "flat" and stock Android freezes the last orientation. A configurable rotation is proposed instead.
+- **Landscape by default** — the panel is mounted portrait, so the display itself is rotated to landscape below the window manager. The device comes up landscape from the setup wizard onwards, with no per-user settings to apply after a wipe, and the boot animation plays landscape too. Touch and the accelerometer are rotated to match, so auto-rotate is correct rather than a quarter turn out. ⚠️ **This lands in the next release** — see [the unreleased changelog](docs/changelog/unreleased.md) — and it arrives with a vendor image, so it reaches clean installs rather than an update over OTA.
 
 ### Audio
 
@@ -132,6 +133,7 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 - **WPA3 / SAE will not connect.** The limit is in the closed-source MT6630 driver and firmware, not in the framework.
 - **SELinux runs permissive.** The device policy exists now and enforcing has been verified with the whole feature set working, but that is **not in this release** — see [the unreleased changelog](docs/changelog/unreleased.md) — and enforcing is not the default even there.
 - **`/data` is not encrypted.** The stock 8.1-era crypto path was not carried over.
+- **The device comes up portrait.** The panel is mounted portrait and this release rotates it per-user, so a fresh install — and the setup wizard — starts portrait and needs auto-rotate off, a fixed rotation, and a launcher preference set by hand after every wipe. Fixed in the next release, where the display itself is rotated; see [the unreleased changelog](docs/changelog/unreleased.md).
 - **Widevine is brought up but only L3 is expected to work**, and L3 has not been verified against a real DRM service.
 
 ### Milestones
