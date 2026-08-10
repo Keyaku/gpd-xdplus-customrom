@@ -45,6 +45,15 @@ The port now has a device policy, and enforcing mode works. **It is still not th
 
 ⚠️ **Turning encryption on requires erasing `/data`.** There is no in-place conversion. If you are already running this ROM, moving to an encrypted `/data` means a clean wipe — back up anything you care about first.
 
+## Updates install themselves now
+
+**The Updater can apply an update on its own.** Pick the update, let it download, tap install — the device reboots into recovery, installs, and reboots back into the system with nothing to tap in recovery. Until now that hand-off did nothing: the device rebooted into recovery and sat at the menu, and the update had to be installed by hand.
+
+- **The cause was a single missing line in recovery's partition table.** Android leaves a note for recovery in a small partition saying what to do on the next boot. Recovery could not find that partition, so it never read the note — and, worse, never cleared one either.
+- **A leftover note used to send the device back into recovery in a loop.** Anything that had written one — an interrupted update, a failed boot — left it behind, and the only way out was clearing it by hand. Recovery now clears it whenever it reboots into the system.
+
+⚠️ **Installing an update removes root.** That is true of any install, hand-flashed or automatic — reinstall Magisk afterwards if you use it.
+
 ## Recovery
 
 - **TWRP no longer stores its own settings and logs on `/data`.** It cannot decrypt `/data`, so writing there was actively harmful once encryption was in play. It uses the microSD card instead. ⚠️ **Keep a card in the device** when using recovery on an encrypted device.

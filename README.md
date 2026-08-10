@@ -129,7 +129,13 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 ### Known issues
 
 - **mini-HDMI output is experimental.** Mirroring to an external monitor works — both display pipelines run at 60 Hz on hardware overlays — but the built-in panel does not render correctly while mirroring, so the feature is shipped behind a toggle rather than on by default.
-- **OTA auto-install is unverified.** The Updater downloads and verifies a build; the non-A/B install path it hands to recovery has been traced in source but never exercised on hardware. Install the downloaded zip from TWRP until that is confirmed. Failure is harmless — recovery clears the boot control block at startup, so there is no loop.
+- **OTA auto-install does not work in this release.** The Updater downloads and verifies a build, but the hand-off to recovery is ignored: the device reboots into recovery and waits at the menu, so install the downloaded zip from there by hand. ⚠️ **It also leaves a note behind telling the device to boot into recovery**, and recovery does not clear it, so the device keeps returning to recovery instead of starting the system. Recovery's own `Reboot → System` does not help. To get out, use TWRP's `Advanced → Terminal` and run:
+
+  ```sh
+  dd if=/dev/zero of=/dev/block/platform/soc/11230000.mmc/by-name/para bs=2048 count=1 conv=notrunc
+  ```
+
+  ⚠️ **Exactly that command** — the partition also holds the bootloader's own settings, and erasing more of it than the first 2048 bytes will leave the device unable to boot. Both halves are fixed in the next release; see [the unreleased changelog](docs/changelog/unreleased.md).
 - **WPA3 / SAE will not connect.** The limit is in the closed-source MT6630 driver and firmware, not in the framework.
 - **SELinux runs permissive.** The device policy exists now and enforcing has been verified with the whole feature set working, but that is **not in this release** — see [the unreleased changelog](docs/changelog/unreleased.md) — and enforcing is not the default even there.
 - **`/data` is not encrypted.** The stock 8.1-era crypto path was not carried over.
@@ -138,7 +144,7 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 
 ### Milestones
 
-Roughly in the order they are likely to be attempted: verify OTA auto-install on the next release; finish the HDMI panel-side fix so mirroring can ship on by default; make SELinux enforcing the default (the policy itself is written — see [the unreleased changelog](docs/changelog/unreleased.md)); `/data` encryption; and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged.
+Roughly in the order they are likely to be attempted: finish the HDMI panel-side fix so mirroring can ship on by default; make SELinux enforcing the default (the policy itself is written — see [the unreleased changelog](docs/changelog/unreleased.md)); and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged. **OTA auto-install and `/data` encryption are done** and ship in the next release.
 
 One quirk is worth stating up front, because it looks like a bug and is not:
 
