@@ -80,8 +80,15 @@ xdkernel_banner() {
 # Prints DTB-MATCH / DTB-MISMATCH / DTB-SKIP. Returns non-zero only on a real
 # mismatch; a missing reference is a skip, since the reference is a private
 # artifact extracted from the stock boot.img and is not in this repo.
+#
+# The reference is no longer the stock DTB: as of 2026-08-10 this port changes the
+# device tree deliberately, for the accelerometer mount (cust_accel@0/direction),
+# so the stock blob would now report a mismatch on every build and the gate would
+# stop meaning anything. The baseline is re-pinned to the current intended DTB and
+# the stock one is KEPT UNTOUCHED next to it as provenance -- diff against that to
+# see every deviation this port has made from what the device shipped with.
 XDDTB="${XDDTB:-$XDOUT/obj/KERNEL_OBJ/arch/arm64/boot/dts/wisky8176_tb_n.dtb}"
-XDDTB_REF="${XDDTB_REF:-$XDBACKUPS/kernel-prep/shipped-wisky8176_tb_n.dtb}"
+XDDTB_REF="${XDDTB_REF:-$XDBACKUPS/kernel-prep/baseline-wisky8176_tb_n-accel-dir1-20260810.dtb}"
 export XDDTB XDDTB_REF
 xddtb_check() {
 	if [ ! -f "$XDDTB" ]; then
