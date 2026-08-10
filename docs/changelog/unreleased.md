@@ -34,3 +34,17 @@ The port now has a device policy, and enforcing mode works. **It is still not th
 
 - The vendor partition image now carries this port's own SELinux rules, appended to the OEM policy when the image is built. The OEM's file is left untouched in source, so what was changed stays readable.
 - The vendor image also carries the `autokd` label, so that daemon lands in its own domain from a clean flash.
+
+## Encryption
+
+`/data` is encrypted now. File-based encryption (FBE) is on, with a lock screen if you want one.
+
+- **This was blocked by a kernel bug, not a missing feature.** The ext4 encryption support this port inherited was incomplete in one specific place: looking up a file inside an encrypted directory did not load that directory's key. A directory created on the first boot became unreachable on the next one — present in a listing, missing to everything else, and impossible to delete. The first boot after enabling encryption worked; every boot after it dropped to recovery. Three other Android kernels for this chip generation all contain the missing piece, and it has been ported across.
+- **Verified the boring way**: eight consecutive reboots on a clean build, then a lock pattern enrolled, rebooted, and unlocked.
+- **Root still works.** Magisk installs and runs on an encrypted device — an earlier note in this project claimed the two could not coexist, and that turned out to be the same kernel bug wearing a different hat.
+
+⚠️ **Turning encryption on requires erasing `/data`.** There is no in-place conversion. If you are already running this ROM, moving to an encrypted `/data` means a clean wipe — back up anything you care about first.
+
+## Recovery
+
+- **TWRP no longer stores its own settings and logs on `/data`.** It cannot decrypt `/data`, so writing there was actively harmful once encryption was in play. It uses the microSD card instead. ⚠️ **Keep a card in the device** when using recovery on an encrypted device.
