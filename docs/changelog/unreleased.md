@@ -75,3 +75,12 @@ An update carries the system and the kernel, but not the vendor partition, so a 
 
 - **The build now checks the vendor partition before it writes anything.** If it is older than the build expects, the install stops with a message telling you to flash the vendor zip first, and nothing on the device has changed. Installing in the wrong order, or skipping the vendor zip, can no longer leave the device in a broken half-state.
 - The same check runs whether you install by hand in recovery or let the Updater do it.
+
+## Mini-HDMI: plug it in and it works
+
+- **A cable connected before you switch the device on now brings the external picture up by itself**, with nothing to press. Previously the display driver could not notice a cable on an idle device at all, so the mirror had to be started from the "GPD XD+" menu.
+- **Unplugging and replugging works too**, and the picture comes back on its own.
+- **The picture appears in about half a second** once the device reaches the point of driving the monitor, instead of taking around nine. Two things were behind the old delay: the bring-up waited out fixed timers instead of waiting for the hardware, and it followed the monitor's own re-connection blink all the way down and back up — so the image appeared, vanished, and came back several seconds later. It now waits on the hardware and rides out the blink.
+- **The mirror survives sleep**: the monitor goes dark with the device and the picture returns within a few seconds of waking it.
+
+⚠️ Tearing HDMI down from the menu still leaves re-detection of the same cable disabled until the next reboot — unplugging and replugging is unaffected.
