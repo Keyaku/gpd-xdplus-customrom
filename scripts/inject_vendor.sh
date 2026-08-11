@@ -68,6 +68,17 @@ ZIP="$XDZIP"
 # 20260809-fbe adds ONE line and nothing else: the /data entry in
 # etc/fstab.mt8173 gains fileencryption=aes-256-xts:aes-256-cts:v1, turning on
 # file-based encryption. Everything else is identical to the image above.
+# 20260810 rotates the display itself: ORIENTATION_270 in build.prop, so the
+# device is landscape from the boot animation and the setup wizard onwards
+# rather than through a per-user setting. It also introduces
+# ro.vendor.xdplus.rev, the marker the OTA asserts on so an update carrying only
+# system and boot cannot half-apply a change that straddles the two partitions.
+# 20260811 patches the sensors HAL: it returned a static list of three sensors,
+# two of which -- an ambient light sensor and a proximity sensor -- are not
+# fitted and answer nothing on i2c, yet accepted listeners that never received a
+# sample. The returned count is the only edit. It carries NO revision bump on
+# purpose: nothing on the system side depends on it, so asserting on it would
+# refuse installs for nothing.
 #
 # !! THIS IMAGE IS NOT SAFE TO FLASH ONTO AN EXISTING INSTALL BY ITSELF !!
 # FBE cannot be enabled in place. Flashing it over a device whose /data is
@@ -79,8 +90,9 @@ ZIP="$XDZIP"
 #
 # So: use this image for a fresh install or a deliberate wipe-and-convert, and
 # point XDVENDOR_IMG at vendor-selinux-addendum-20260809.img for an in-place
-# vendor refresh on a plaintext /data.
-VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-fbe-20260809.img}"
+# vendor refresh on a plaintext /data. Every image below that one carries the
+# same fstab line, so the warning applies to the default too.
+VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-sensorlist-20260811.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in
