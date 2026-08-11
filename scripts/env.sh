@@ -24,11 +24,11 @@ export XDOUT="${XDOUT:-$XDROOT/out/target/product/xdplus}"
 export XDKSRC="${XDKSRC:-$XDREPO/../android_kernel_mt8176_common}"
 
 # Backup images (boot.img rollbacks, vendor partition images). Not in git — they are
-# multi-hundred-MB artifacts. Probe the two layouts that exist in practice: a private
-# working tree that keeps them under reversing/backups, and a flat dir next to the repo.
-# Override in xdplus.env if yours lives elsewhere.
+# multi-hundred-MB artifacts. Probe the layouts that exist in practice: a private
+# working tree that keeps them under a sibling device/backups, and a flat dir next to
+# the repo. Override in xdplus.env if yours lives elsewhere.
 if [ -z "${XDBACKUPS:-}" ]; then
-	for _c in "$XDREPO/../reversing/backups" "$XDREPO/../backups" "$XDREPO/.."; do
+	for _c in "$XDREPO/../../device/backups" "$XDREPO/../backups" "$XDREPO/.."; do
 		[ -d "$_c" ] && XDBACKUPS="$_c" && break
 	done
 	unset _c
