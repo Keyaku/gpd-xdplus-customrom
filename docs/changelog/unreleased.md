@@ -76,6 +76,15 @@ An update carries the system and the kernel, but not the vendor partition, so a 
 - **The build now checks the vendor partition before it writes anything.** If it is older than the build expects, the install stops with a message telling you to flash the vendor zip first, and nothing on the device has changed. Installing in the wrong order, or skipping the vendor zip, can no longer leave the device in a broken half-state.
 - The same check runs whether you install by hand in recovery or let the Updater do it.
 
+## Mini-HDMI: a smoother picture, and windows that actually appear
+
+- **The mirrored picture is smooth.** Playback and scrolling used to stutter on both screens while mirroring; that is gone.
+- **Windows that open while mirroring now show up.** Pulling down the notification shade or quick settings could leave the screen looking untouched — the panel was still displaying the previous arrangement of windows on both the built-in screen and the monitor. Anything that changes which windows are on screen now appears as it should.
+
+Both came from one fault in the display driver: while mirroring, changes to *which* windows are on screen and *where* they sit were prepared but never handed to the display hardware, which kept showing the last arrangement it had been given. Only the picture inside each window kept updating.
+
+⚠️ **Rotating the screen while mirroring is still broken** — the picture freezes part-way through the turn on both screens, and tearing the mirror down and bringing it back is the way out. That is a separate fault, in the closed graphics software, and it is not fixed here.
+
 ## Mini-HDMI: plug it in and it works
 
 - **A cable connected before you switch the device on now brings the external picture up by itself**, with nothing to press. Previously the display driver could not notice a cable on an idle device at all, so the mirror had to be started from the "GPD XD+" menu.
