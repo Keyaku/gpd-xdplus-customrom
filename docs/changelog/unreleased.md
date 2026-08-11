@@ -92,4 +92,5 @@ The XD+ has one sensor: the accelerometer. It was nevertheless advertising a gyr
 - **Those four are no longer advertised.** An app that requires any of them now correctly skips this device, or hides the feature, instead of installing and then finding nothing there.
 - Games and apps that merely *offer* motion controls are unaffected — they were already falling back to the buttons, because there was never a gyroscope to read.
 
-⚠️ The system's own sensor list, which comes from the closed graphics-era vendor software, still mentions a light and a proximity sensor. That cannot be corrected from our side, and nothing reads them.
+- **The system's own sensor list is honest too.** The closed vendor software still reports a light sensor and a proximity sensor that are not fitted; both are now filtered out before anything can see them, so an app asking the system what sensors exist gets the one that is real.
+- **Adaptive brightness is no longer offered.** It needs an ambient light sensor, so the switch could never do anything — it stayed on whatever brightness you had set. Brightness is manual, as it always effectively was.
