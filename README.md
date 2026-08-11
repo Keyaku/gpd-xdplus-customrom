@@ -109,6 +109,8 @@ Only branches for versions actually supported are carried. For the ROM trees tha
 
 - **The Camera app** and the camera feature flags. The XD+ has no camera; advertising one only makes apps fail confusingly. **Camera blobs** were also stripped from the vendor partition entirely.
 - **Telephony is dormant.** The packages stay (Settings depends on them), but there is no radio HAL and the device declares itself non-voice-capable.
+- **Four sensors the device does not have.** Stock declared a gyroscope, a compass, an ambient light sensor and a proximity sensor — claims inherited from MediaTek's reference tablet design and carried through GPD's own firmware, which shipped a gyroscope flag on a kernel that had no gyroscope driver compiled in at all. None of the four parts answers on the i2c bus. The feature flags are gone, and the two that the closed vendor software also invented in its own sensor list are patched out of it, so nothing can register a listener that will never receive a sample. The accelerometer is real and untouched.
+- **The adaptive brightness switch**, which needed the ambient light sensor that is not fitted. It could only ever leave brightness where you had set it.
 - **No Google apps.** Standard LineageOS: nothing Google ships is included. Install GApps or microG yourself if you want them.
 
 ## What this will never have
@@ -117,6 +119,7 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 
 - **Cellular / SIM.** No modem in the device.
 - **Camera.** No sensor in the device.
+- **Gyroscope, compass, ambient light and proximity sensors.** None of them is fitted. Motion controls that need a gyroscope cannot work here; the accelerometer covers screen rotation and nothing more.
 - **`fastboot flash` / `fastboot boot`.** GPD never provided an unlock path for this model, and the lock is what refuses those two commands. Everything they would be used for is covered by TWRP and the preloader instead, so this costs convenience rather than capability.
 - **Widevine L1.** L1 needs a certified, provisioned OEMCrypto path through the TEE, which this device was never issued. Protected HD streaming from services that require L1 will not happen here.
 - **Google Play certification.** Uncertified builds, by construction.
