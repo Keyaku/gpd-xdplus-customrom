@@ -84,3 +84,12 @@ An update carries the system and the kernel, but not the vendor partition, so a 
 - **The mirror survives sleep**: the monitor goes dark with the device and the picture returns within a few seconds of waking it.
 
 ⚠️ Tearing HDMI down from the menu still leaves re-detection of the same cable disabled until the next reboot — unplugging and replugging is unaffected.
+
+## The device no longer claims sensors it does not have
+
+The XD+ has one sensor: the accelerometer. It was nevertheless advertising a gyroscope, a compass, an ambient light sensor and a proximity sensor — four claims inherited from MediaTek's reference tablet design and carried, unchanged, through the original GPD firmware.
+
+- **Those four are no longer advertised.** An app that requires any of them now correctly skips this device, or hides the feature, instead of installing and then finding nothing there.
+- Games and apps that merely *offer* motion controls are unaffected — they were already falling back to the buttons, because there was never a gyroscope to read.
+
+⚠️ The system's own sensor list, which comes from the closed graphics-era vendor software, still mentions a light and a proximity sensor. That cannot be corrected from our side, and nothing reads them.
