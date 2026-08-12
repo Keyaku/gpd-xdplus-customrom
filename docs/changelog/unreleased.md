@@ -105,3 +105,16 @@ The XD+ has one sensor: the accelerometer. It was nevertheless advertising a gyr
 
 ⚠️ **The vendor-software half of that arrives with the vendor image**, not over an update — flash the vendor zip published beside the release. The filter alone is enough on a device that only takes the update.
 - **Adaptive brightness is no longer offered.** It needs an ambient light sensor, so the switch could never do anything — it stayed on whatever brightness you had set. Brightness is manual, as it always effectively was.
+
+## Deleting a large folder from the SD card works
+
+Deleting a big folder from the SD card in the Files app used to show a "deleting" notification, run for a while, and finish with the folder still sitting there. No error appeared. Part of the folder's contents had usually gone.
+
+Two separate causes, both fixed:
+
+- **The SD card's filesystem was flushing to the card after every single file.** That is the safety setting Android uses on removable cards, and on a folder with tens of thousands of files it made deletion take minutes. It is now off for exFAT cards, which is what this device's card uses.
+- **The system gave up on the storage service after 20 seconds** and killed it part way through, which is why the folder survived and nothing was reported. It now waits long enough for genuinely large jobs to finish.
+
+A folder of 20,000 files now deletes in about 17 seconds, and the notification finishing means it is actually finished.
+
+⚠️ **Eject the card properly** — through Settings, or the eject button next to the card in the Files app — before pulling it out. That was already true, but the card now keeps a little more in memory before writing it, so pulling it out mid-write has a slightly wider window to go wrong.
