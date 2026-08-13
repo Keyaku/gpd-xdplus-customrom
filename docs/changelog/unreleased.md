@@ -21,6 +21,13 @@ The port now has a device policy, and enforcing mode works. **It is still not th
 - **Practical effects.** A cache is counted against its own app's storage, is removed when you clear that app's data, and is reclaimed automatically by Android when storage runs low. The **per-app** size limit in the "GPD XD+" menu is unchanged; the **all-apps** limit is gone, because there is no shared directory left to limit.
 - **"Clear shader cache" still works**, and still takes effect the next time each game starts — which was already true of the old version, since a running app holds its cache open until it exits.
 
+## Vulkan driver identity
+
+- **Hardware-info apps (DevCheck and friends) now see the Vulkan driver's real identity instead of "unknown" and all-zero UUIDs.** The vendor driver is Vulkan 1.0.49 from 2017 — it predates the Vulkan extensions those apps read (`VK_KHR_driver_properties`, the external-capabilities family), so the fields never had values. The port's Vulkan shim now advertises them and answers from the driver's own data: name "PowerVR Rogue", the real DDK build tag (`1.9@4893595`), and a driver UUID taken from the driver binary's own build ID, so it changes only if the driver binary changes.
+- **"Driver conformance" still reads 0.0.0.0, and that is correct, not a leftover bug**: this GPU was never submitted for Khronos Vulkan conformance testing (every PowerVR entry on the conformant-products list is a newer Series8XE-or-later part), and 0.0.0.0 is the spec's defined "unknown / never submitted" value. There is no real number to show.
+- **"Driver version" now reads 1.9.0** instead of "1.170.2971". The driver reports its Perforce changelist (4893595) in that field with no published encoding, and apps that guess the usual Vulkan bit-packing rendered it as a nonsense version; the shim now re-encodes it as the real DDK version. The changelist is still shown, in the driver-info string.
+- Escape hatch: `debug.xdplus.vkdrvinfo=0` restores the old behavior.
+
 ## The "GPD XD+" menu is its own app now
 
 - Nothing changes on screen: the menu is still reached from Settings, in the same place, with the same pages. It is built as a device app rather than as a modification of the Settings app, which is how device-specific settings are normally shipped — and it means the Settings app on this ROM is now stock.
@@ -29,6 +36,18 @@ The port now has a device policy, and enforcing mode works. **It is still not th
 
 - **Every button in the "GPD XD+" menu that performed an immediate action did nothing.** The dispatcher behind them was started with an empty command because of how init expands properties when it parses its configuration, so HDMI bring-up, HDMI teardown and the shader-cache wipe were all silently no-ops. Fixed.
 - The port's privileged helper scripts are installed as proper executables rather than being run through the shell, which is what lets them run at all under enforcement.
+
+## Kernel — CPU cluster sysfs layout modernized
+
+- **`/sys/devices/system/cpu/cpufreq/policy0` and `policy4` now exist** (backported from Linux 4.7; 3.18 only exposed per-core `cpuN/cpufreq` dirs). Apps that enumerate CPU clusters by policy — MKM's CPU Clusters and Core Status sections among them — now show both clusters (quad A53, dual A72), their governors, frequencies and per-core state instead of empty sections.
+
+## Kernel — battery current now exposed
+
+- **`/sys/class/power_supply/battery/current_now` now exists**, backed by the fuel gauge's sense-resistor reading (µA, positive while charging). Monitoring apps previously had no standard current node at all and fell back to garbage (MKM showed charging power in the *thousands of watts* from an integer-overflow sentinel). Charge/discharge power now reads sanely (~0.5–1.5 W trickle-charging near full).
+
+## Kernel — GPU now visible to monitoring apps
+
+- **The GPU now registers with the kernel's devfreq framework** (`/sys/class/devfreq/mt8176-gpu`). Until now the GPU's frequency scaling ran entirely inside the MediaTek/PowerVR driver pair, so nothing in the standard sysfs location existed and kernel-manager apps (tested with MKM over Shizuku) showed the GPU's frequency, governor and frequency table as "Unknown"/"N/A". Those apps now show the live GPU frequency, the real OPP table (253.5–598 MHz) and the governor, and can set min/max frequency and governor through the standard nodes. The default governor is inert (`userspace`): the PowerVR driver's own frequency scaling is untouched unless a tool explicitly asks for a change.
 
 ## Under the hood
 
