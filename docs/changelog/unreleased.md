@@ -15,6 +15,17 @@ The port now has a device policy, and enforcing mode works. **It is still not th
 
 **What is left before enforcing can be the default**: the remaining denials, a pass over the parts of the system this port has not exercised under enforcement yet, and a soak on a release build.
 
+## Mirroring to a monitor no longer freezes in games
+
+Mirroring to the mini-HDMI port used to stop dead as soon as a game or any other fullscreen app was in the foreground: the built-in screen kept working, the monitor froze on whatever was last on it, and it only came back when you left the app. It works through fullscreen apps now, with your animation speeds left alone.
+
+- **The monitor stays live in games, videos and anything else fullscreen.** Nothing to turn on — it is on by default.
+- **A new switch, "Keep the monitor alive in fullscreen apps"**, under GPD XD+ → Display out, in case you ever want it off. It takes effect immediately.
+- It works by keeping one almost invisible pixel on screen while a monitor is plugged in. That is genuinely all it takes: the display chip's mirroring gives up when the screen contains a single thing to draw, and one more thing is enough to keep it going. The pixel disappears when you unplug.
+- **Three switches are gone from Display out**, because they no longer do anything useful. "Turn off animations while mirroring" traded your animations for what this fix now does for free. "HDMI mirror mode" turned mirroring off entirely when disabled, and there is no reason to disable it. "Disable HDMI vsync pacing" was a debugging knob that displayed the wrong state.
+
+Mirroring is still marked experimental: bring-up can fail and needs a retry, and **sound does not travel over the HDMI cable** — it keeps coming out of the handheld.
+
 ## Vulkan shader cache
 
 - **Each app's shader cache now lives inside that app's own storage** instead of one shared directory. The old layout could not work under SELinux enforcement in either direction: an app is not allowed to write outside its own sandbox, and the privileged helper that pruned the shared directory is not allowed to delete files inside app sandboxes.
