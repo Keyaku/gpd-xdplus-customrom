@@ -24,7 +24,15 @@ Mirroring to the mini-HDMI port used to stop dead as soon as a game or any other
 - It works by keeping one almost invisible pixel on screen while a monitor is plugged in. That is genuinely all it takes: the display chip's mirroring gives up when the screen contains a single thing to draw, and one more thing is enough to keep it going. The pixel disappears when you unplug.
 - **Three switches are gone from Display out**, because they no longer do anything useful. "Turn off animations while mirroring" traded your animations for what this fix now does for free. "HDMI mirror mode" turned mirroring off entirely when disabled, and there is no reason to disable it. "Disable HDMI vsync pacing" was a debugging knob that displayed the wrong state.
 
-Mirroring is still marked experimental: bring-up can fail and needs a retry, and **sound does not travel over the HDMI cable** — it keeps coming out of the handheld.
+Mirroring is still marked experimental: bring-up can fail and needs a retry.
+
+## Sound now comes out of the monitor
+
+Plug in a monitor or TV and the audio goes there, at a normal volume you can control with the volume keys. Until now it never did — sound stayed on the handheld's own speakers no matter what was plugged in.
+
+- **Nothing to switch on.** Plug the cable in and the monitor becomes the audio output, the way any other device does; unplug and sound returns to the handheld.
+- **The volume keys work over HDMI**, and the signal leaves at a standard level, so you should not have to re-adjust your monitor or amplifier when you switch to the handheld from another input.
+- Stereo, at the sample rates the display reports it accepts. Surround and passthrough formats are not offered, because the hardware path here is a stereo one and claiming otherwise produced noise rather than surround.
 
 ## Vulkan shader cache
 
