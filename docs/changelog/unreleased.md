@@ -40,6 +40,7 @@ The graphics driver on this device dates from 2017. It supports Vulkan 1.0 compl
 
 - **Four additions**, all of them about how an app asks for and attaches memory. Apps that look for them and quietly fall back to OpenGL when they are absent no longer have to.
 - **A bug that could have cost an app Vulkan entirely is fixed.** An app that asked to use one of the extras the ROM already advertised was refused a graphics device outright, rather than being given one. Nothing shipped is known to have hit it, but any app that did would simply have had no Vulkan.
+- **Shipping in the build dated 16 August 2026**, verified on the device.
 - **The device is still Vulkan 1.0**, and nothing here changes that. Apps that require Vulkan 1.1 or newer — PCSX2 among them — still cannot run on it, and should stay on OpenGL.
 
 ## Vulkan shader cache
