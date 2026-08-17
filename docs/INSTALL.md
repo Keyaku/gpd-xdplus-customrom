@@ -88,6 +88,12 @@ This matters because the two halves are not independent. Parts of a feature can 
 
 ⚠️ **The Updater cannot do this for you.** It installs exactly one zip, so a release with a vendor zip is not fully applied by an in-place update. When the vendor partition is too old the automatic install refuses and the device comes back on the build it was already running — flash the vendor zip from TWRP, then install the update.
 
+### ⚠️ Encryption is opt-in, and taking it means erasing `/data`
+
+From [20260817](changelog/20260817.md) the build supports file-based encryption of `/data`. There is **no in-place conversion**: an existing install keeps its unencrypted `/data` after the update and stays that way. Taking encryption means a clean wipe — back up anything you care about, then Format Data in TWRP before first boot of the new build.
+
+Nothing forces the choice. An unencrypted device keeps working on this release; it simply does not gain encryption by updating.
+
 ## Path B — the preloader (first-time and unbrick)
 
 Below Android, below TWRP and below the bootloader, the MT8176 boot ROM answers on **every** power-up, for a fraction of a second, whether or not the device can boot, show anything or reach adb. That window is how a stock device gets TWRP, and how a device showing nothing at all comes back.
@@ -212,7 +218,7 @@ Wi-Fi re-provisions itself on first connect; nothing to do there.
 
 The Updater app finds, downloads and verifies builds, then installs one on its own: the device reboots into recovery, applies the update and reboots back into the system with nothing to tap. No wipe is needed between builds of the same LineageOS version.
 
-⚠️ **Not on [20260804](changelog/20260804.md), the currently published build.** There the hand-off to recovery is ignored — the device reboots into recovery, waits at the menu, and leaves behind a note that keeps sending it back to recovery on later boots. Install the downloaded zip from `/data/lineageos_updates/` by hand via [Path A](#path-a--install-via-twrp-normal-case), and see the README's known issues for the one command that clears that note. Both problems are fixed in the next release.
+⚠️ **Not on [20260804](changelog/20260804.md), the first release.** There the hand-off to recovery is ignored — the device reboots into recovery, waits at the menu, and leaves behind a note that keeps sending it back to recovery on later boots. Install the downloaded zip from `/data/lineageos_updates/` by hand via [Path A](#path-a--install-via-twrp-normal-case), and see that release's notes for the one command that clears that note. Both are fixed from [20260817](changelog/20260817.md) onwards.
 
 ⚠️ **An update installs only the build.** If the release also ships a vendor zip, flash it from TWRP afterwards — see [the vendor zip note](#-when-a-release-ships-a-vendor-zip-install-it-too).
 

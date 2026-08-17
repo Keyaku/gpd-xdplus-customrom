@@ -76,7 +76,7 @@ Only branches for versions actually supported are carried. For the ROM trees tha
 - **OpenGL ES** works throughout the UI and in apps.
 - **Vulkan (1.0) works in games** (needs more testing), via a compatibility shim that works around the driver's crashes. RetroArch and its cores run on the Vulkan renderer. Flutter apps requiring Vulkan 1.1 are funneled through backwards compatibility extensions; they'll work, but don't expect full Vulkan 1.1 support.
 - **Rotation flat-pose handling** — the accelerometer sits in the clamshell base, so resting the device on a table reads as "flat" and stock Android freezes the last orientation. A configurable rotation is proposed instead.
-- **Landscape by default** — the panel is mounted portrait, so the display itself is rotated to landscape below the window manager. The device comes up landscape from the setup wizard onwards, with no per-user settings to apply after a wipe, and the boot animation plays landscape too. Touch and the accelerometer are rotated to match, so auto-rotate is correct rather than a quarter turn out. ⚠️ **This lands in the next release** — see [the unreleased changelog](docs/changelog/unreleased.md) — and it arrives with a vendor image, so it reaches clean installs rather than an update over OTA.
+- **Landscape by default** — the panel is mounted portrait, so the display itself is rotated to landscape below the window manager. The device comes up landscape from the setup wizard onwards, with no per-user settings to apply after a wipe, and the boot animation plays landscape too. Touch and the accelerometer are rotated to match, so auto-rotate is correct rather than a quarter turn out. ⚠️ **It arrives with the vendor image**, so an update over OTA alone does not carry it — flash the vendor zip published beside the release.
 
 ### Audio
 
@@ -131,23 +131,17 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 
 ### Known issues
 
-- **mini-HDMI output is experimental.** Mirroring to an external monitor works — both display pipelines run at 60 Hz on hardware overlays — but the built-in panel does not render correctly while mirroring, so the feature is shipped behind a toggle rather than on by default.
-- **OTA auto-install does not work in this release.** The Updater downloads and verifies a build, but the hand-off to recovery is ignored: the device reboots into recovery and waits at the menu, so install the downloaded zip from there by hand. ⚠️ **It also leaves a note behind telling the device to boot into recovery**, and recovery does not clear it, so the device keeps returning to recovery instead of starting the system. Recovery's own `Reboot → System` does not help. To get out, use TWRP's `Advanced → Terminal` and run:
-
-  ```sh
-  dd if=/dev/zero of=/dev/block/platform/soc/11230000.mmc/by-name/para bs=2048 count=1 conv=notrunc
-  ```
-
-  ⚠️ **Exactly that command** — the partition also holds the bootloader's own settings, and erasing more of it than the first 2048 bytes will leave the device unable to boot. Both halves are fixed in the next release; see [the unreleased changelog](docs/changelog/unreleased.md).
+- **mini-HDMI output has rough edges.** Mirroring works, survives fullscreen apps, comes up on its own when you plug a cable in and carries sound — but bring-up occasionally needs a retry (reboot if it fails twice), opening an app after the device has sat idle a while can freeze both pictures, and an app that forces a portrait screen can leave the built-in one wrong. "Tear down HDMI" in the GPD XD+ menu is the way out of both freezes. Games also run less smoothly while a monitor is attached, which is inherent to the way this chip mirrors.
 - **WPA3 / SAE will not connect.** The limit is in the closed-source MT6630 driver and firmware, not in the framework.
-- **SELinux runs permissive.** The device policy exists now and enforcing has been verified with the whole feature set working, but that is **not in this release** — see [the unreleased changelog](docs/changelog/unreleased.md) — and enforcing is not the default even there.
-- **`/data` is not encrypted.** The stock 8.1-era crypto path was not carried over.
-- **The device comes up portrait.** The panel is mounted portrait and this release rotates it per-user, so a fresh install — and the setup wizard — starts portrait and needs auto-rotate off, a fixed rotation, and a launcher preference set by hand after every wipe. Fixed in the next release, where the display itself is rotated; see [the unreleased changelog](docs/changelog/unreleased.md).
+- **SELinux runs permissive.** The device policy exists and enforcing has been verified with graphics, Vulkan, gameplay, codecs, Bluetooth, Wi-Fi and the Settings menu all working, but it is **not the default** and one blocker remains: the vendor sensor service is denied access to the accelerometer under enforcing, which silently disables auto-rotate until a reboot.
+- **Turning on `/data` encryption requires erasing `/data`.** Encryption ships and works, but there is no in-place conversion — an existing install has to be wiped to take it.
+- **The vendor partition is updated by a separate zip.** An update carries the system and the kernel only, so features that straddle the two — landscape by default, the sensor list, HDMI audio — need the vendor zip published beside the release. Installing without it is refused rather than half-applied.
+- **Vulkan is 1.0.** The 2017 driver supports 1.0 completely and nothing newer; apps that require 1.1 or later, PCSX2 among them, need to stay on OpenGL.
 - **Widevine is brought up but only L3 is expected to work**, and L3 has not been verified against a real DRM service.
 
 ### Milestones
 
-Roughly in the order they are likely to be attempted: finish the HDMI panel-side fix so mirroring can ship on by default; make SELinux enforcing the default (the policy itself is written — see [the unreleased changelog](docs/changelog/unreleased.md)); and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged. **OTA auto-install and `/data` encryption are done** and ship in the next release.
+Roughly in the order they are likely to be attempted: make SELinux enforcing the default, which needs the sensor denial above solved; smooth out HDMI bring-up and the composer-side freeze that the mirror currently works around; and pushing the port up the LineageOS versions as far as 8.1-era blobs can be dragged.
 
 One quirk is worth stating up front, because it looks like a bug and is not:
 
@@ -157,7 +151,7 @@ One quirk is worth stating up front, because it looks like a bug and is not:
 
 [`docs/changelog/`](docs/changelog/) — one file per release, newest first.
 
-⚠️ **The latest download is not the latest work.** The current release is [20260804](docs/changelog/20260804.md); everything finished since then is listed under [Unreleased](docs/changelog/unreleased.md) and ships in the next release. The headline there is SELinux: the port now has a device policy and survives enforcing mode with graphics, codecs, Vulkan and the Settings menu all working. It still ships permissive by default, and the sources for it are not pushed yet.
+The current release is [20260817](docs/changelog/20260817.md) — encrypted `/data`, landscape by default, HDMI mirroring with sound, updates that install themselves, and a device SELinux policy. Work finished after it is listed under [Unreleased](docs/changelog/unreleased.md).
 
 ## Installing
 
