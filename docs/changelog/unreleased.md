@@ -68,6 +68,15 @@ Mirroring to a monitor works, survives fullscreen apps, comes up on its own when
 
 - Nothing changes on screen: the menu is still reached from Settings, in the same place, with the same pages. It is built as a device app rather than as a modification of the Settings app, which is how device-specific settings are normally shipped — and it means the Settings app on this ROM is now stock.
 
+## Fewer false alarms in the logs
+
+Three safety nets added while chasing display freezes have been removed or scaled back, after checking whether each had ever caught a real fault.
+
+- **One of them was firing several times a minute on a perfectly healthy device** and writing a warning each time — the display was working the whole while. It watched for the system's drawing clock stopping, but could not tell that apart from the normal case of nothing needing to be drawn.
+- **Its recovery step could never have run.** It was meant to escalate if the first attempt did not help; the timer it depended on only restarts when the clock it was watching for comes back, so on a real fault it fired once and stopped. No recording of any fault shows it reaching the second step.
+- **A second one, in the kernel, never caught anything** and watched for a symptom the real freezes do not produce: they keep drawing at full rate while the screen stays still. It was also listening to every button and touch even when switched off.
+- **A third is kept, as a detector only.** It watched for the external display's frames going unacknowledged and, if that happened, marked them acknowledged anyway — a small lie told to avoid a bigger stall. It has never once fired since it was written, so the lie has been removed and the detector left in place: if it ever does happen, the log will say so and nothing will have been papered over.
+
 ## Fixes
 
 - **Every button in the "GPD XD+" menu that performed an immediate action did nothing.** The dispatcher behind them was started with an empty command because of how init expands properties when it parses its configuration, so HDMI bring-up, HDMI teardown and the shader-cache wipe were all silently no-ops. Fixed.
