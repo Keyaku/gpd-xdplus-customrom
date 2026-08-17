@@ -24,7 +24,7 @@ Mirroring to the mini-HDMI port used to stop dead as soon as a game or any other
 - It works by keeping one almost invisible pixel on screen while a monitor is plugged in. That is genuinely all it takes: the display chip's mirroring gives up when the screen contains a single thing to draw, and one more thing is enough to keep it going. The pixel disappears when you unplug.
 - **Three switches are gone from Display out**, because they no longer do anything useful. "Turn off animations while mirroring" traded your animations for what this fix now does for free. "HDMI mirror mode" turned mirroring off entirely when disabled, and there is no reason to disable it. "Disable HDMI vsync pacing" was a debugging knob that displayed the wrong state.
 
-Mirroring is still marked experimental: bring-up can fail and needs a retry.
+Mirroring is no longer marked experimental — see "Display out reads like a finished feature now" below for what the page says instead.
 
 ## Sound now comes out of the monitor
 
@@ -55,6 +55,14 @@ The graphics driver on this device dates from 2017. It supports Vulkan 1.0 compl
 - **"Driver conformance" still reads 0.0.0.0, and that is correct, not a leftover bug**: this GPU was never submitted for Khronos Vulkan conformance testing (every PowerVR entry on the conformant-products list is a newer Series8XE-or-later part), and 0.0.0.0 is the spec's defined "unknown / never submitted" value. There is no real number to show.
 - **"Driver version" now reads 1.9.0** instead of "1.170.2971". The driver reports its Perforce changelist (4893595) in that field with no published encoding, and apps that guess the usual Vulkan bit-packing rendered it as a nonsense version; the shim now re-encodes it as the real DDK version. The changelist is still shown, in the driver-info string.
 - Escape hatch: `debug.xdplus.vkdrvinfo=0` restores the old behavior.
+
+## Display out reads like a finished feature now
+
+Mirroring to a monitor works, survives fullscreen apps, comes up on its own when you plug a cable in, and carries sound — so the "Display out" page no longer calls itself experimental or warns that the feature is unfinished.
+
+- **The page opens with what you actually need to know before plugging a monitor in**, and only the rough edges that genuinely remain: bring-up occasionally needs one retry (reboot if it fails twice), opening an app after the device has sat idle for a while can freeze both pictures, an app that forces a portrait screen can leave the built-in one wrong, and games run a little less smoothly while a monitor is attached.
+- **"Tear down HDMI" is described as the way out of both freezes**, which is what it is. The old wording implied tearing the mirror down was itself risky; it is the fix, not the fault.
+- **Settings that do not apply immediately now say when they do.** The HDMI resolution takes effect the next time the mirror starts, and the shader cache limit the next time a game starts — both previously looked as though nothing had happened.
 
 ## The "GPD XD+" menu is its own app now
 
