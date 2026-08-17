@@ -1,6 +1,15 @@
 {
   "response": [
     {
+      "datetime": 1787006261,
+      "filename": "lineage-18.1-20260817-UNOFFICIAL-xdplus.zip",
+      "id": "938f06d6f63262c55a647c0d61be039fd6fc78914509d3cd5694b4cc71d2228a",
+      "romtype": "unofficial",
+      "size": 592996014,
+      "url": "https://github.com/Keyaku/gpd-xdplus-customrom/releases/download/20260817/lineage-18.1-20260817-UNOFFICIAL-xdplus.zip",
+      "version": "18.1"
+    },
+    {
       "datetime": 1785879870,
       "filename": "lineage-18.1-20260804-UNOFFICIAL-xdplus.zip",
       "id": "faacfc128787b4c887c77c4082ec018799a6c60467c02a2b7ec6195f0965ac9c",
