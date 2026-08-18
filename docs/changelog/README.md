@@ -2,6 +2,8 @@
 
 One file per release, newest first. Each file reads top-to-bottom as newest-first too, so a point release is prepended to the file it belongs to rather than starting a new one.
 
+Each release file has the same two-part shape: an **At a glance** list of every change in one line each, with an anchor link to the detail for anything that has more to say, followed by the **detail sections**, one per subsystem. A change belongs to exactly one detail section — if it touches two, pick the one it is really about and mention it once.
+
 | Version | Date | Notes |
 |---|---|---|
 | [Unreleased](unreleased.md) | — | Work that is done and verified on hardware but **not published yet**. It ships in the next release. |
