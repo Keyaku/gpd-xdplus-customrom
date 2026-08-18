@@ -92,7 +92,9 @@ ZIP="$XDZIP"
 # point XDVENDOR_IMG at vendor-selinux-addendum-20260809.img for an in-place
 # vendor refresh on a plaintext /data. Every image below that one carries the
 # same fstab line, so the warning applies to the default too.
-VIMG="${XDVENDOR_IMG:-$XDBACKUPS/vendor-sensorlist-20260811.img}"
+# Default is the tree bake, which is the only image guaranteed to carry the rev the
+# current build asserts. Pointing this at a backup silently ships an older rev.
+VIMG="${XDVENDOR_IMG:-$XDROOT/vendor/gpd/xdplus/vendor.img}"
 OUT=""
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -127,19 +129,56 @@ SCRIPT_PATH="META-INF/com/google/android/updater-script"
 US="$WORK/updater-script"
 unzip -p "$UNSIGNED" "$SCRIPT_PATH" > "$US"
 
-if grep -q 'by-name/vendor' "$US"; then
-	echo "note: updater-script already writes vendor; leaving script as-is"
-else
-	# Insert the vendor write right after the system restore step (backuptool.sh
-	# restore) so it lands before boot.img, matching the CAMFREE ordering.
-	LINE='ui_print("Writing vendor image...");'
-	LINE="$LINE"$'\n''package_extract_file("vendor.img", "'"$XDBYNAME_TWRP"'/vendor");'
-	awk -v ins="$LINE" '
-		{ print }
-		/backuptool\.sh", "restore"/ && !done { print ins; done=1 }
-	' "$US" > "$US.new"
-	grep -q 'by-name/vendor' "$US.new" || { echo "ERROR: failed to insert vendor write (no restore anchor?)" >&2; exit 3; }
-	mv "$US.new" "$US"
+# Rewrite the script: drop the vendor-revision gate and add the vendor write.
+#
+# The gate exists to stop a system-only package installing against a vendor
+# partition it does not match. A package that writes vendor itself satisfies that
+# by construction, and leaving the gate in would abort on exactly the from-stock
+# installs this package is for. Its mount of /vendor must go with it: writing the
+# block device underneath a mounted filesystem corrupts it.
+python3 - "$US" "$XDBYNAME_TWRP" <<'PYEOF'
+import re, sys
+
+path, byname = sys.argv[1], sys.argv[2]
+src = open(path).read()
+
+if 'package_extract_file("vendor.img"' in src:
+	print("note: updater-script already writes vendor; leaving script as-is", file=sys.stderr)
+	sys.exit(0)
+
+# Drop every complete statement testing is_mounted("/vendor") -- the mount and the
+# revision gate -- by consuming to the semicolon that closes each one.
+while True:
+	i = src.find('ifelse(is_mounted("/vendor")')
+	if i < 0:
+		break
+	depth, j = 0, i
+	while j < len(src):
+		if src[j] == '(':
+			depth += 1
+		elif src[j] == ')':
+			depth -= 1
+		elif src[j] == ';' and depth == 0:
+			j += 1
+			break
+		j += 1
+	src = src[:i] + src[j:]
+src = re.sub(r'\n{3,}', '\n\n', src)
+
+# Vendor lands after the system image and before boot.
+write = ('ui_print("Writing vendor image...");\n'
+         'package_extract_file("vendor.img", "%s/vendor");\n' % byname)
+anchor = 'package_extract_file("boot.img"'
+k = src.index(anchor)
+src = src[:k] + write + src[k:]
+
+open(path, 'w').write(src)
+PYEOF
+
+grep -q 'package_extract_file("vendor.img"' "$US" || {
+	echo "ERROR: failed to insert the vendor write" >&2; exit 3; }
+if grep -q 'is_mounted("/vendor")' "$US"; then
+	echo "ERROR: the vendor-revision gate survived the rewrite" >&2; exit 3
 fi
 
 # Stage vendor.img + updated script into the unsigned zip.
@@ -155,6 +194,12 @@ LD_LIBRARY_PATH="$CONSCRYPT" java -Djava.library.path="$CONSCRYPT" \
 
 echo "verifying vendor payload present..."
 unzip -l "$OUT" | grep -q 'vendor.img' || { echo "ERROR: vendor.img missing from output" >&2; exit 4; }
-unzip -p "$OUT" "$SCRIPT_PATH" | grep -q 'by-name/vendor' || { echo "ERROR: vendor write missing from script" >&2; exit 4; }
+# Check for the write itself: 'by-name/vendor' also appears in the revision gate,
+# so grepping for that passes on a package that never writes vendor at all.
+unzip -p "$OUT" "$SCRIPT_PATH" | grep -q 'package_extract_file("vendor.img"' || {
+	echo "ERROR: vendor write missing from script" >&2; exit 4; }
+if unzip -p "$OUT" "$SCRIPT_PATH" | grep -q 'is_mounted("/vendor")'; then
+	echo "ERROR: the vendor-revision gate survived into the output" >&2; exit 4
+fi
 
 echo "OK -> $OUT"

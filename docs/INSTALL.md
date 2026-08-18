@@ -76,17 +76,11 @@ This is the single most common way people lose root here. The build's `boot` ima
 
 ### `/vendor` and camera-free blobs
 
-`/vendor` on this device is a real partition (`mmcblk0p23`) holding camera-stripped, prebuilt vendor blobs — the standard ROM zip does **not** touch it. If a release is published as a `-CAMFREE` zip, that variant additionally writes `vendor` and you install it exactly the same way. Install the plain zip on a device whose vendor partition is already correct; install the `-CAMFREE` zip when coming from stock or when a release note says the vendor set changed.
+`/vendor` on this device is a real partition (`mmcblk0p23`) holding camera-stripped, prebuilt vendor blobs. The release zip writes it along with `system` and `boot`, so there is nothing separate to install and no order to get right.
 
-### ⚠️ When a release ships a vendor zip, install it too
+⚠️ **This is a change from earlier releases.** A release used to carry a second `-CAMFREE` zip beside a build that left `vendor` alone, and you had to flash both. That is gone: there is one zip per release, under the plain build name, and it contains everything.
 
-Some releases carry a **second zip that writes the vendor partition**, listed on the release page next to the build. When one is present, **flash both in the same TWRP session** — the vendor zip first, then the build.
-
-⭐ **The build checks for you.** If your vendor partition is older than the build expects, the install stops before writing anything and tells you to flash the vendor zip first. You cannot end up half-updated by installing in the wrong order or by skipping the vendor zip — the worst case is a refused install.
-
-This matters because the two halves are not independent. Parts of a feature can live in the kernel and the system image while the rest lives in vendor: the landscape display is the current example, where touch orientation and the accelerometer mount ship in the build and the display rotation itself ships in vendor. **Taking only the build leaves the device worse off than not updating** — landscape input against a portrait display, so taps land in the wrong place.
-
-⚠️ **The Updater cannot do this for you.** It installs exactly one zip, so a release with a vendor zip is not fully applied by an in-place update. When the vendor partition is too old the automatic install refuses and the device comes back on the build it was already running — flash the vendor zip from TWRP, then install the update.
+⚠️ **The vendor image turns on encryption of `/data`.** On a device whose `/data` is still plaintext — anything installed before 20260817 — the first boot after writing vendor fails and the device comes back to recovery. That is not damage and nothing is lost that a wipe would not take anyway, but it means **moving to an encrypted `/data` is a wipe, not an update**. See [Encryption is opt-in](#-encryption-is-opt-in-and-taking-it-means-erasing-data) below.
 
 ### ⚠️ Encryption is opt-in, and taking it means erasing `/data`
 
@@ -220,7 +214,7 @@ The Updater app finds, downloads and verifies builds, then installs one on its o
 
 ⚠️ **Not on [20260804](changelog/20260804.md), the first release.** There the hand-off to recovery is ignored — the device reboots into recovery, waits at the menu, and leaves behind a note that keeps sending it back to recovery on later boots. Install the downloaded zip from `/data/lineageos_updates/` by hand via [Path A](#path-a--install-via-twrp-normal-case), and see that release's notes for the one command that clears that note. Both are fixed from [20260817](changelog/20260817.md) onwards.
 
-⚠️ **An update installs only the build.** If the release also ships a vendor zip, flash it from TWRP afterwards — see [the vendor zip note](#-when-a-release-ships-a-vendor-zip-install-it-too).
+⚠️ **An update carries the vendor partition too**, so nothing is left half-applied — but that also means an update writes `vendor`, which turns on encryption. See [`/vendor` and camera-free blobs](#vendor-and-camera-free-blobs).
 
 Remember the boot partition rule on every single update, not just the first: if you are rooted, re-write your Magisk boot.img afterwards. That applies to an automatic install exactly as it does to a hand-flashed one.
 

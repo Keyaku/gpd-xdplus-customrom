@@ -14,6 +14,9 @@ scripts/.state/
 *.img
 *.bin
 
+# The running list of unpublished work: local until it is cut into a release file
+docs/changelog/unreleased.md
+
 # Local overrides of scripts/env.sh
 .env
 xdplus.env
