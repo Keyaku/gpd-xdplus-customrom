@@ -68,7 +68,7 @@ Only branches for versions actually supported are carried. For the ROM trees tha
 
 - **LineageOS 18.1 / Android 11**, up from the stock Android 7.0, a four-version jump on 2018 vendor blobs.
 - **Kernel built from source** (3.18.79) rather than lifted from a shipped image, including an Android-11 binder ABI backport the 2019-era GPL tree predates.
-- **Release-signed** builds; upstream framework changes carried as **27 numbered patches** with per-patch rationale, not as forks of `frameworks/*`.
+- **Release-signed** builds; upstream framework changes carried as **many numbered patches** with per-patch rationale, not as forks of `frameworks/*`.
 
 ### Graphics
 
@@ -76,7 +76,7 @@ Only branches for versions actually supported are carried. For the ROM trees tha
 - **OpenGL ES** works throughout the UI and in apps.
 - **Vulkan (1.0) works in games** (needs more testing), via a compatibility shim that works around the driver's crashes. RetroArch and its cores run on the Vulkan renderer. Flutter apps requiring Vulkan 1.1 are funneled through backwards compatibility extensions; they'll work, but don't expect full Vulkan 1.1 support.
 - **Rotation flat-pose handling** — the accelerometer sits in the clamshell base, so resting the device on a table reads as "flat" and stock Android freezes the last orientation. A configurable rotation is proposed instead.
-- **Landscape by default** — the panel is mounted portrait, so the display itself is rotated to landscape below the window manager. The device comes up landscape from the setup wizard onwards, with no per-user settings to apply after a wipe, and the boot animation plays landscape too. Touch and the accelerometer are rotated to match, so auto-rotate is correct rather than a quarter turn out. ⚠️ **It arrives with the vendor image**, so an update over OTA alone does not carry it — flash the vendor zip published beside the release.
+- **Landscape by default** — the panel is mounted portrait, so the display itself is rotated to landscape below the window manager. The device comes up landscape from the setup wizard onwards, with no per-user settings to apply after a wipe, and the boot animation plays landscape too. Touch and the accelerometer are rotated to match, so auto-rotate is correct rather than a quarter turn out.
 
 ### Audio
 
@@ -95,7 +95,7 @@ Only branches for versions actually supported are carried. For the ROM trees tha
 - **Power-save handled by screen state.** The MT6630 driver mishandles 802.11 power-save and access points kick the device under sustained load, so the radio is kept awake while the screen is on and allowed back into power-save when it is off. Pinning it off unconditionally was the first fix and cost real standby battery; making it screen-conditional keeps the link stable in use without paying for it idle.
 - **Bluetooth 4.1**, with pairing and A2DP audio.
 - **Both radios patched**: Wi-Fi and Bluetooth are each fixed in their own right and can run together. _Yes, I know: insanity!!_
-- The only Wi-Fi gap is **WPA3/SAE**, below.
+- The only Wi-Fi gap is **WPA3/SAE**; check below.
 
 ### Security and system
 
@@ -123,7 +123,7 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 - **`fastboot flash` / `fastboot boot`.** GPD never provided an unlock path for this model, and the lock is what refuses those two commands. Everything they would be used for is covered by TWRP and the preloader instead, so this costs convenience rather than capability.
 - **Widevine L1.** L1 needs a certified, provisioned OEMCrypto path through the TEE, which this device was never issued. Protected HD streaming from services that require L1 will not happen here.
 - **Google Play certification.** Uncertified builds, by construction.
-- **6 GHz Wi-Fi.** No 6E radio, despite what "hardware info" apps claim.
+- **6 GHz Wi-Fi.** No 6E radio, despite what "hardware info" apps may claim.
 - **A from-source `/vendor` image.** The device uses the legacy system-as-root layout where `/vendor` is a symlink into the system image, and building one natively creates a mount loop. Vendor stays a partition-based blob set, injected post-build.
 - **Anything requiring drivers that don't exist.** The GPU, Wi-Fi and video blobs are Android 8.1-era binaries with no source, and there will never be newer ones. That is the ceiling every future Android version has to be dragged over.
 
@@ -131,11 +131,10 @@ Not "not yet" — these are hardware or licensing walls with nothing behind them
 
 ### Known issues
 
-- **mini-HDMI output has rough edges.** Mirroring works, survives fullscreen apps, comes up on its own when you plug a cable in and carries sound — but bring-up occasionally needs a retry (reboot if it fails twice), opening an app after the device has sat idle a while can freeze both pictures, and an app that forces a portrait screen can leave the built-in one wrong. "Tear down HDMI" in the GPD XD+ menu is the way out of both freezes. Games also run less smoothly while a monitor is attached, which is inherent to the way this chip mirrors.
-- **WPA3 / SAE will not connect.** The limit is in the closed-source MT6630 driver and firmware, not in the framework.
+- **mini-HDMI output has rough edges.** Mirroring works, survives fullscreen apps, comes up on its own when you plug a cable in and carries sound — but bring-up occasionally needs a retry (reboot if it fails twice), and opening an app after the device has sat idle a while can freeze both pictures. "Tear down HDMI" in the GPD XD+ menu is the way out of both freezes. Games also run less smoothly while a monitor is attached, which is inherent to the way this chip mirrors.
+- **WPA3 / SAE will not connect.** The limit is in the MT6630 driver and firmware, not in the framework.
 - **SELinux runs permissive.** The device policy exists and enforcing has been verified with graphics, Vulkan, gameplay, codecs, Bluetooth, Wi-Fi and the Settings menu all working, but it is **not the default** and one blocker remains: the vendor sensor service is denied access to the accelerometer under enforcing, which silently disables auto-rotate until a reboot.
 - **Turning on `/data` encryption requires erasing `/data`.** Encryption ships and works, but there is no in-place conversion — an existing install has to be wiped to take it.
-- **The vendor partition is updated by a separate zip.** An update carries the system and the kernel only, so features that straddle the two — landscape by default, the sensor list, HDMI audio — need the vendor zip published beside the release. Installing without it is refused rather than half-applied.
 - **Vulkan is 1.0.** The 2017 driver supports 1.0 completely and nothing newer; apps that require 1.1 or later, PCSX2 among them, need to stay on OpenGL.
 - **Widevine is brought up but only L3 is expected to work**, and L3 has not been verified against a real DRM service.
 
@@ -227,6 +226,6 @@ To the people who published their work, which is the only reason any of this was
 
 A note rather than a credit, because accuracy matters here.
 
-The XD+ had an earlier unofficial Android 8.1 ROM titled CleanROM, and the GPL trees published alongside the older Android 8.1-era work — the `mt8176_common` kernel and the TWRP tree — were real and useful, and this port builds on both. They are forked with history and attribution intact, as the GPL asks.
+The XD+ had an earlier unofficial Android ROM titled CleanROM, and the GPL trees published alongside the older Android 8.1-era work — the `mt8176_common` kernel and the TWRP tree — were real and useful, and this port builds on both. They are forked with history and attribution intact, as the GPL asks.
 
-The 15.1-18.1 builds are a different matter _because they were locked behind a paywall_, distributed as flashable binaries and abandoned at Beta 19 over 5 years ago, unfinished (namely Vulkan and HDMI implementations were incomplete), and **the kernel sources were never published** — which the GPL **does not permit** for a binary you distribute. The practical result is that everyone running it was stuck: no source, no way to fix a bug, no way to continue the work. That is the gap this project exists to close, and it is why the kernel here is built from public source and why every framework change is carried as a readable patch. The published work is acknowledged. The unpublished part is not something to thank anyone for.
+The 15.1-18.1 builds are a different matter _because they were locked behind a paywall_, distributed as flashable binaries and abandoned at Beta 19 over 5 years ago, unfinished (namely Vulkan and HDMI implementations were incomplete), and **the kernel sources were never published** — which the GPL **does not permit** for a binary you distribute. The practical result is that everyone running it was stuck: no source, no way to fix a bug, no way to continue the work. That is the gap this project exists to close, and it is why the kernel here is built from public source and why every framework change is carried as a readable patch. The published work is acknowledged. The unpublished part is not something to thank anyone for, let alone defend them.
