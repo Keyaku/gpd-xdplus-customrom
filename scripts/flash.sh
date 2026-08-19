@@ -34,14 +34,14 @@ adb devices | grep -q 'recovery$' || { echo "FLASH-FAIL: no recovery"; exit 2; }
 H1=$(md5sum "$XDZIP" | awk '{print $1}')
 OK=""
 for i in 1 2 3; do
-	adb push "$XDZIP" /sdcard/auto.zip >/dev/null 2>&1
-	H2=$(adb shell md5sum /sdcard/auto.zip 2>/dev/null | awk '{print $1}')
+	adb push "$XDZIP" /tmp/auto.zip >/dev/null 2>&1
+	H2=$(adb shell md5sum /tmp/auto.zip 2>/dev/null | awk '{print $1}')
 	[ "$H1" = "$H2" ] && { OK=1; break; }
 	sleep 5
 done
 [ -n "$OK" ] || { echo "FLASH-FAIL: md5 mismatch after 3 tries"; exit 2; }
 
-adb shell twrp install /sdcard/auto.zip 2>&1 | tail -1 | grep -q 'script succeeded\|Done processing' \
+adb shell twrp install /tmp/auto.zip 2>&1 | tail -1 | grep -q 'script succeeded\|Done processing' \
 	|| { echo "FLASH-FAIL: twrp install"; exit 2; }
 # Clear BCB (the `para` partition) so LK doesn't loop straight back into recovery,
 # then boot. Note the by-name path differs under the TWRP kernel from the one the
