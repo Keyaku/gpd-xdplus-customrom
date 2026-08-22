@@ -62,6 +62,19 @@ What that means for you:
 
 Only branches for versions actually supported are carried. For the ROM trees that means **`lineage-18.1`** and nothing else; an empty `lineage-20` branch would just waste your afternoon. The recovery tree tracks the OS it services, not TWRP releases, so its branch is named after the Android version.
 
+### Forked upstream projects
+
+Two LineageOS projects are replaced rather than patched. You do **not** clone these by hand — the local manifest in the device tree swaps them in with `<remove-project>`, so `repo sync` fetches them in place of LineageOS's copies.
+
+| Repo | Replaces | Why | Branch |
+| --- | --- | --- | --- |
+| [`android_external_wpa_supplicant_8`](https://github.com/Keyaku/android_external_wpa_supplicant_8/tree/lineage-18.1-xdplus) | `LineageOS/android_external_wpa_supplicant_8` | WPA3-SAE on this chip: routes the external-auth command through the driver event handler, plus the SAE fixes the MT6630 driver needs | `lineage-18.1-xdplus` |
+| [`android_packages_providers_MediaProvider`](https://github.com/Keyaku/android_packages_providers_MediaProvider/tree/lineage-18.1) | `LineageOS/android_packages_providers_MediaProvider` | microSD writes: the retry that avoids a permission error when a non-owner process touches file timestamps on the card | `lineage-18.1` |
+
+Each began as a numbered patch and became a fork once the change outgrew a diff. **The retired patch numbers are not reused**, so a gap in the `patches/` sequence is deliberate rather than a missing file.
+
+`packages/apps/Settings` is deliberately **not** forked. The "GPD XD+" settings menu used to be a fork of it and is now an app inside the device tree, which upstream Settings picks up as an injected tile — so nothing device-specific has to live in a fork of Settings any more.
+
 ## Features
 
 ### The platform
